@@ -2,9 +2,15 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.accounts import User, UserGroup, UserGroupEnum
-from src.schemas.accounts import UserRegisterRequest
-from src.services.security import hash_password
+from src.models.accounts import User, UserGroup, UserGroupEnum, RefreshToken
+from src.schemas.accounts import UserRegisterRequest, UserLoginRequest
+from src.services.security import (
+    create_access_token,
+    create_refresh_token,
+    get_refresh_token_expires_at,
+    hash_password,
+    verify_password
+)
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
@@ -50,3 +56,36 @@ async def register_user(db: AsyncSession, data: UserRegisterRequest) -> User:
     await db.refresh(user)
 
     return user
+
+
+async def login_user(db: AsyncSession, data: UserLoginRequest) -> dict[str, str]:
+    user = await get_user_by_email(db=db, email=data.email)
+
+    if user is None or not verify_password(data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password."
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is not active."
+        )
+
+    access_token = create_access_token(user_id=user.id)
+    refresh_token = create_refresh_token()
+
+    db_refresh_token = RefreshToken(
+        user_id=user.id,
+        token=refresh_token,
+        expires_at=get_refresh_token_expires_at()
+    )
+
+    db.add(db_refresh_token)
+    await db.commit()
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }

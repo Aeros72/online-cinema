@@ -31,3 +31,14 @@ class UserResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class UserLoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class TokenPairResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
