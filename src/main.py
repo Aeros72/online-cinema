@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-app = FastAPI()
+app = FastAPI(title="Online Cinema API")
 
 
 @app.get("/")
 def root():
-    return {"message": "ok"}
+    return {"message": "Online Cinema API"}
