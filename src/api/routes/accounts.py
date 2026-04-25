@@ -1,6 +1,7 @@
 from fastapi import APIRouter, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.dependencies.auth import get_current_active_user
 from src.db.session import get_db
 from src.schemas.accounts import (
     UserResponse,
@@ -52,3 +53,8 @@ async def refresh_token(
     )
 
     return AccessTokenResponse(**tokens)
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(user=Depends(get_current_active_user)) -> UserResponse:
+    return UserResponse.model_validate(user)
