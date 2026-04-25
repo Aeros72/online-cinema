@@ -6,9 +6,15 @@ from src.schemas.accounts import (
     UserResponse,
     UserRegisterRequest,
     UserLoginRequest,
-    TokenPairResponse
+    TokenPairResponse,
+    AccessTokenResponse,
+    RefreshTokenRequest
 )
-from src.services.accounts import register_user, login_user
+from src.services.accounts import (
+    register_user,
+    login_user,
+    refresh_access_token
+)
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
@@ -33,3 +39,16 @@ async def login(
 ) -> TokenPairResponse:
     tokens = await login_user(db=db, data=data)
     return TokenPairResponse(**tokens)
+
+
+@router.post("/refresh", response_model=AccessTokenResponse)
+async def refresh_token(
+        data: RefreshTokenRequest,
+        db: AsyncSession = Depends(get_db)
+):
+    tokens = await refresh_access_token(
+        db=db,
+        refresh_token=data.refresh_token
+    )
+
+    return AccessTokenResponse(**tokens)

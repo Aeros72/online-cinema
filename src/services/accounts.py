@@ -1,3 +1,5 @@
+from datetime import timezone, datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -89,3 +91,29 @@ async def login_user(db: AsyncSession, data: UserLoginRequest) -> dict[str, str]
         "access_token": access_token,
         "refresh_token": refresh_token
     }
+
+
+async def refresh_access_token(db: AsyncSession, refresh_token: str) -> dict[str, str]:
+    result = await db.execute(
+        select(RefreshToken).where(RefreshToken.token == refresh_token)
+    )
+    db_refresh_token = result.scalar_one_or_none()
+
+    if db_refresh_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token."
+        )
+
+    if db_refresh_token.expires_at < datetime.now(timezone.utc):
+        await db.delete(db_refresh_token)
+        await db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has expired."
+        )
+
+    access_token = create_access_token(user_id=db_refresh_token.user_id)
+
+    return {"access_token": access_token}
