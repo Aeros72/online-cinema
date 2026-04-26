@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.dependencies.auth import get_current_active_user
@@ -15,7 +15,7 @@ from src.services.accounts import (
     register_user,
     login_user,
     refresh_access_token,
-    logout_user
+    logout_user, activate_user
 )
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
@@ -70,3 +70,12 @@ async def logout(
         db=db,
         refresh_token=data.refresh_token
     )
+
+
+@router.get("/activate")
+async def activate(
+        token: str = Query(...),
+        db: AsyncSession = Depends(get_db)
+):
+    await activate_user(db=db, token=token)
+    return {"message": "Account activated"}

@@ -43,3 +43,7 @@ def get_refresh_token_expires_at() -> datetime:
     return datetime.now(timezone.utc) + timedelta(
         days=settings.REFRESH_TOKEN_EXPIRE_DAYS
     )
+
+
+def create_activation_token() -> str:
+    return str(uuid4())

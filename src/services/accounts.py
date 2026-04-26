@@ -1,17 +1,17 @@
-from datetime import timezone, datetime
+from datetime import timezone, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.accounts import User, UserGroup, UserGroupEnum, RefreshToken
+from src.models.accounts import User, UserGroup, UserGroupEnum, RefreshToken, ActivationToken
 from src.schemas.accounts import UserRegisterRequest, UserLoginRequest
 from src.services.security import (
     create_access_token,
     create_refresh_token,
     get_refresh_token_expires_at,
     hash_password,
-    verify_password
+    verify_password, create_activation_token
 )
 
 
@@ -56,6 +56,18 @@ async def register_user(db: AsyncSession, data: UserRegisterRequest) -> User:
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    activation_token = ActivationToken(
+        user_id=user.id,
+        token=create_activation_token(),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
+    )
+
+    db.add(activation_token)
+    await db.commit()
+    await db.refresh(user)
+
+    print(f"Activation token: {activation_token.token}")
 
     return user
 
@@ -132,4 +144,31 @@ async def logout_user(db: AsyncSession, refresh_token: str) -> None:
         )
 
     await db.delete(db_refresh_token)
+    await db.commit()
+
+
+async def activate_user(db: AsyncSession, token: str) -> None:
+    result = await db.execute(
+        select(ActivationToken).where(ActivationToken.token == token)
+    )
+    db_token = result.scalar_one_or_none()
+
+    if db_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid activation token."
+        )
+
+    if db_token.expires_at < datetime.now(timezone.utc):
+        await db.delete(db_token)
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Activation token expired."
+        )
+
+    user = await db.get(User, db_token.user_id)
+    user.is_active = True
+
+    await db.delete(db_token)
     await db.commit()
