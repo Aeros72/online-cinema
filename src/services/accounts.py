@@ -117,3 +117,19 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str) -> dict[str
     access_token = create_access_token(user_id=db_refresh_token.user_id)
 
     return {"access_token": access_token}
+
+
+async def logout_user(db: AsyncSession, refresh_token: str) -> None:
+    result = await db.execute(
+        select(RefreshToken).where(RefreshToken.token == refresh_token)
+    )
+    db_refresh_token = result.scalar_one_or_none()
+
+    if db_refresh_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token."
+        )
+
+    await db.delete(db_refresh_token)
+    await db.commit()

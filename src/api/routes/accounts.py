@@ -14,7 +14,8 @@ from src.schemas.accounts import (
 from src.services.accounts import (
     register_user,
     login_user,
-    refresh_access_token
+    refresh_access_token,
+    logout_user
 )
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
@@ -58,3 +59,14 @@ async def refresh_token(
 @router.get("/me", response_model=UserResponse)
 async def get_me(user=Depends(get_current_active_user)) -> UserResponse:
     return UserResponse.model_validate(user)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+        data: RefreshTokenRequest,
+        db: AsyncSession = Depends(get_db)
+) -> None:
+    await logout_user(
+        db=db,
+        refresh_token=data.refresh_token
+    )
