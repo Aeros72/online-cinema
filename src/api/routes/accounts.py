@@ -9,13 +9,20 @@ from src.schemas.accounts import (
     UserLoginRequest,
     TokenPairResponse,
     AccessTokenResponse,
-    RefreshTokenRequest, ResendActivationRequest
+    RefreshTokenRequest,
+    ResendActivationRequest,
+    PasswordResetRequest,
+    PasswordResetConfirmRequest
 )
 from src.services.accounts import (
     register_user,
     login_user,
     refresh_access_token,
-    logout_user, activate_user, resend_activation_token
+    logout_user,
+    activate_user,
+    resend_activation_token,
+    request_password_reset,
+    confirm_password_reset
 )
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
@@ -88,3 +95,25 @@ async def resend_activation(
 ):
     await resend_activation_token(db=db, email=data.email)
     return {"message": "Activation token has been resent."}
+
+
+@router.post("/password/reset")
+async def reset_password_request(
+        data: PasswordResetRequest,
+        db: AsyncSession = Depends(get_db)
+):
+    await request_password_reset(db=db, email=data.email)
+    return {"message": "If account exists, reset link sent."}
+
+
+@router.post("/password/reset/confirm")
+async def reset_password_confirm(
+        data: PasswordResetConfirmRequest,
+        db: AsyncSession = Depends(get_db)
+):
+    await confirm_password_reset(
+        db=db,
+        token=data.token,
+        new_password=data.new_password
+    )
+    return {"message": "Password has been reset."}

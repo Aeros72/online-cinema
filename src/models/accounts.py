@@ -80,6 +80,10 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan"
     )
+    password_reset_token: Mapped["PasswordResetToken"] = relationship(
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
 
 class UserProfile(Base):
@@ -143,6 +147,29 @@ class RefreshToken(Base):
 
 class ActivationToken(Base):
     __tablename__ = "activation_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        unique=True,
+        nullable=False
+    )
+    token: Mapped[str] = mapped_column(
+        String(512),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False
+    )
+
+    user: Mapped["User"] = relationship()
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(

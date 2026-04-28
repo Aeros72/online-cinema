@@ -3,13 +3,15 @@ from src.models.accounts import (
     UserGroup,
     UserProfile,
     RefreshToken,
-    ActivationToken
+    ActivationToken,
+    PasswordResetToken
 )
 
 
 __all__ = [
     "ActivationToken",
     "RefreshToken",
+    "PasswordResetToken",
     "User",
     "UserGroup",
     "UserProfile",

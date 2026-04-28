@@ -55,3 +55,26 @@ class AccessTokenResponse(BaseModel):
 
 class ResendActivationRequest(BaseModel):
     email: EmailStr
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirmRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_complexity(cls, value: str) -> str:
+        if not re.search(r"[A-Z]", value):
+            raise ValueError("Must contain uppercase letter")
+
+        if not re.search(r"[a-z]", value):
+            raise ValueError("Must contain lowercase letter")
+
+        if not re.search(r"\d", value):
+            raise ValueError("Must contain digit")
+
+        return value

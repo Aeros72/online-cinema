@@ -4,7 +4,14 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.accounts import User, UserGroup, UserGroupEnum, RefreshToken, ActivationToken
+from src.models.accounts import (
+    User,
+    UserGroup,
+    UserGroupEnum,
+    RefreshToken,
+    ActivationToken,
+    PasswordResetToken
+)
 from src.schemas.accounts import UserRegisterRequest, UserLoginRequest
 from src.services.security import (
     create_access_token,
@@ -208,3 +215,63 @@ async def resend_activation_token(db: AsyncSession, email: str) -> None:
     await db.commit()
 
     print(f"New activation token: {new_token.token}")
+
+
+async def request_password_reset(db: AsyncSession, email: str) -> None:
+    user = await get_user_by_email(db=db, email=email)
+
+    if user is None or not user.is_active:
+        return
+
+    result = await db.execute(
+        select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
+    )
+    old_token = result.scalar_one_or_none()
+
+    if old_token:
+        await db.delete(old_token)
+        await db.flush()
+
+    token = PasswordResetToken(
+        user_id=user.id,
+        token=create_activation_token(),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
+    )
+
+    db.add(token)
+    await db.commit()
+
+    print(f"Password reset token: {token.token}")
+
+
+async def confirm_password_reset(
+        db: AsyncSession,
+        token: str,
+        new_password: str
+) -> None:
+    result = await db.execute(
+        select(PasswordResetToken).where(PasswordResetToken.token == token)
+    )
+    db_token = result.scalar_one_or_none()
+
+    if db_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token."
+        )
+
+    if db_token.expires_at < datetime.now(timezone.utc):
+        await db.delete(db_token)
+        await db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token expired."
+        )
+
+    user = await db.get(User, db_token.user_id)
+
+    user.hashed_password = hash_password(new_password)
+
+    await db.delete(db_token)
+    await db.commit()
