@@ -172,3 +172,39 @@ async def activate_user(db: AsyncSession, token: str) -> None:
 
     await db.delete(db_token)
     await db.commit()
+
+
+async def resend_activation_token(db: AsyncSession, email: str) -> None:
+    user = await get_user_by_email(db, email)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    if user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account is already active."
+        )
+
+    result = await db.execute(
+        select(ActivationToken).where(ActivationToken.user_id == user.id)
+    )
+    old_token = result.scalar_one_or_none()
+
+    if old_token is not None:
+        await db.delete(old_token)
+        await db.flush()
+
+    new_token = ActivationToken(
+        user_id=user.id,
+        token=create_activation_token(),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
+    )
+
+    db.add(new_token)
+    await db.commit()
+
+    print(f"New activation token: {new_token.token}")

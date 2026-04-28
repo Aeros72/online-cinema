@@ -9,13 +9,13 @@ from src.schemas.accounts import (
     UserLoginRequest,
     TokenPairResponse,
     AccessTokenResponse,
-    RefreshTokenRequest
+    RefreshTokenRequest, ResendActivationRequest
 )
 from src.services.accounts import (
     register_user,
     login_user,
     refresh_access_token,
-    logout_user, activate_user
+    logout_user, activate_user, resend_activation_token
 )
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
@@ -79,3 +79,12 @@ async def activate(
 ):
     await activate_user(db=db, token=token)
     return {"message": "Account activated"}
+
+
+@router.post("/activation/resend")
+async def resend_activation(
+        data: ResendActivationRequest,
+        db: AsyncSession = Depends(get_db)
+):
+    await resend_activation_token(db=db, email=data.email)
+    return {"message": "Activation token has been resent."}
