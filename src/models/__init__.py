@@ -6,6 +6,13 @@ from src.models.accounts import (
     ActivationToken,
     PasswordResetToken
 )
+from src.models.movies import (
+    Genre,
+    Star,
+    Director,
+    Certification,
+    Movie
+)
 
 
 __all__ = [
@@ -15,4 +22,9 @@ __all__ = [
     "User",
     "UserGroup",
     "UserProfile",
+    "Genre",
+    "Star",
+    "Director",
+    "Certification",
+    "Movie"
 ]
