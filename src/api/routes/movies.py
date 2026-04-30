@@ -29,7 +29,10 @@ from src.services.movies import (
     create_certification,
     get_movies,
     create_movie,
-    get_movie_by_uuid
+    get_movie_by_uuid,
+    add_movie_to_favorites,
+    remove_movie_from_favorites,
+    get_favorite_movies
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -164,6 +167,15 @@ async def get_movies_endpoint(
     return [MovieResponse.model_validate(movie) for movie in movies]
 
 
+@router.get("/favorites", response_model=list[MovieResponse])
+async def get_favorite_movies_endpoint(
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    movies = await get_favorite_movies(db=db, user_id=user.id)
+    return [MovieResponse.model_validate(movie) for movie in movies]
+
+
 @router.get("/{movie_uuid}", response_model=MovieResponse)
 async def get_movie_detail_endpoint(
         movie_uuid: UUID,
@@ -171,3 +183,35 @@ async def get_movie_detail_endpoint(
 ):
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
     return MovieResponse.model_validate(movie)
+
+
+@router.post(
+    "/{movie_uuid}/favorites",
+    response_model=MovieResponse,
+    status_code=status.HTTP_201_CREATED
+)
+async def add_movie_to_favorites_endpoint(
+        movie_uuid: UUID,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    movie = await add_movie_to_favorites(
+        db=db,
+        user_id=user.id,
+        movie_uuid=movie_uuid
+    )
+
+    return MovieResponse.model_validate(movie)
+
+
+@router.delete("/{movie_uuid}/favorites", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_movie_from_favorites_endpoint(
+        movie_uuid: UUID,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+) -> None:
+    await remove_movie_from_favorites(
+        db=db,
+        user_id=user.id,
+        movie_uuid=movie_uuid
+    )

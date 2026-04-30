@@ -84,6 +84,10 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+    favorite_movies: Mapped[list["Movie"]] = relationship(
+        secondary="favorite_movies",
+        back_populates="favorited_by"
+    )
 
 
 class UserProfile(Base):

@@ -9,7 +9,8 @@ from src.models.movies import (
     Star,
     Director,
     Certification,
-    Movie
+    Movie,
+    favorite_movies
 )
 from src.schemas.movies import MovieCreate
 
@@ -243,3 +244,70 @@ async def get_movie_by_uuid(db: AsyncSession, movie_uuid: UUID) -> Movie:
         )
 
     return movie
+
+
+async def add_movie_to_favorites(
+        db: AsyncSession,
+        user_id: int,
+        movie_uuid: UUID
+) -> Movie:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+
+    result = await db.execute(
+        select(favorite_movies).where(
+            favorite_movies.c.user_id == user_id,
+            favorite_movies.c.movie_id == movie.id
+        )
+    )
+    existing = result.first()
+
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Movie already in favorites."
+        )
+
+    await db.execute(
+        favorite_movies.insert().values(
+            user_id=user_id,
+            movie_id=movie.id
+        )
+    )
+
+    await db.commit()
+    return movie
+
+
+async def remove_movie_from_favorites(
+        db: AsyncSession,
+        user_id: int,
+        movie_uuid: UUID
+) -> None:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+
+    result = await db.execute(
+        favorite_movies.delete().where(
+            favorite_movies.c.user_id == user_id,
+            favorite_movies.c.movie_id == movie.id
+        )
+    )
+
+    if result.rowcount == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie is not in favorites."
+        )
+
+    await db.commit()
+
+
+async def get_favorite_movies(
+        db: AsyncSession,
+        user_id: int
+) -> list[Movie]:
+    result = await db.execute(
+        select(Movie)
+        .join(favorite_movies, favorite_movies.c.movie_id == Movie.id)
+        .where(favorite_movies.c.user_id == user_id)
+    )
+    return list(result.scalars().all())

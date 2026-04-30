@@ -29,6 +29,13 @@ movie_directors = Table(
     Column("director_id", ForeignKey("directors.id", ondelete="CASCADE"), primary_key=True),
 )
 
+favorite_movies = Table(
+    "favorite_movies",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("movie_id", ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True)
+)
+
 
 class Genre(Base):
     __tablename__ = "genres"
@@ -141,4 +148,9 @@ class Movie(Base):
     directors: Mapped[list["Director"]] = relationship(
         secondary=movie_directors,
         back_populates="movies"
+    )
+
+    favorited_by: Mapped[list["User"]] = relationship(
+        secondary=favorite_movies,
+        back_populates="favorite_movies"
     )
