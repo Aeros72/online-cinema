@@ -12,7 +12,9 @@ from src.schemas.movies import (
     DirectorResponse,
     DirectorCreate,
     CertificationResponse,
-    CertificationCreate
+    CertificationCreate,
+    MovieResponse,
+    MovieCreate
 )
 from src.services.movies import (
     get_genres,
@@ -22,7 +24,8 @@ from src.services.movies import (
     get_directors,
     create_director,
     get_certifications,
-    create_certification
+    create_certification,
+    create_movie
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -114,3 +117,17 @@ async def get_certifications_endpoint(
 ):
     certifications = await get_certifications(db=db)
     return [CertificationResponse.model_validate(c) for c in certifications]
+
+
+@router.post(
+    "",
+    response_model=MovieResponse,
+    status_code=status.HTTP_201_CREATED
+)
+async def create_movie_endpoint(
+        data: MovieCreate,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    movie = await create_movie(db=db, data=data)
+    return MovieResponse.model_validate(movie)

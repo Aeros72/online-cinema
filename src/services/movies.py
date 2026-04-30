@@ -7,8 +7,10 @@ from src.models.movies import (
     Genre,
     Star,
     Director,
-    Certification
+    Certification,
+    Movie
 )
+from src.schemas.movies import MovieCreate
 
 
 async def create_genre(db: AsyncSession, name: str) -> Genre:
@@ -105,3 +107,64 @@ async def create_certification(db: AsyncSession, name: str) -> Certification:
 async def get_certifications(db: AsyncSession) -> list[Certification]:
     result = await db.execute(select(Certification))
     return list(result.scalars().all())
+
+
+async def create_movie(db: AsyncSession, data: MovieCreate) -> Movie:
+    certification = await db.get(Certification, data.certification_id)
+
+    if certification is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Certification not found."
+        )
+
+    genres_result = await db.execute(select(Genre).where(Genre.id.in_(data.genre_ids)))
+    genres = list(genres_result.scalars().all())
+
+    if len(genres) != len(set(data.genre_ids)):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="One or more genres not found."
+        )
+
+    stars_result = await db.execute(select(Star).where(Star.id.in_(data.star_ids)))
+    stars = list(stars_result.scalars().all())
+
+    if len(stars) != len(set(data.star_ids)):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="One or more stars not found.",
+        )
+
+    directors_result = await db.execute(
+        select(Director).where(Director.id.in_(data.director_ids))
+    )
+    directors = list(directors_result.scalars().all())
+
+    if len(directors) != len(set(data.director_ids)):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="One or more directors not found.",
+        )
+
+    movie = Movie(
+        name=data.name,
+        year=data.year,
+        time=data.time,
+        imdb=data.imdb,
+        votes=data.votes,
+        meta_score=data.meta_score,
+        gross=data.gross,
+        description=data.description,
+        price=data.price,
+        certification_id=data.certification_id,
+        genres=genres,
+        stars=stars,
+        directors=directors
+    )
+
+    db.add(movie)
+    await db.commit()
+    await db.refresh(movie)
+
+    return movie
