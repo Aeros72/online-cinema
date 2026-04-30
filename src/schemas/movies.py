@@ -90,3 +90,18 @@ class MovieResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class RatingCreate(BaseModel):
+    value: int = Field(ge=0, le=10)
+
+
+class RatingResponse(BaseModel):
+    id: int
+    user_id: int
+    movie_id: int
+    value: int
+
+    model_config = {
+        "from_attributes": True
+    }

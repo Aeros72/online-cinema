@@ -16,7 +16,9 @@ from src.schemas.movies import (
     CertificationResponse,
     CertificationCreate,
     MovieResponse,
-    MovieCreate
+    MovieCreate,
+    RatingResponse,
+    RatingCreate
 )
 from src.services.movies import (
     get_genres,
@@ -32,7 +34,9 @@ from src.services.movies import (
     get_movie_by_uuid,
     add_movie_to_favorites,
     remove_movie_from_favorites,
-    get_favorite_movies
+    get_favorite_movies,
+    rate_movie,
+    delete_rating
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -211,6 +215,39 @@ async def remove_movie_from_favorites_endpoint(
         user=Depends(get_current_active_user)
 ) -> None:
     await remove_movie_from_favorites(
+        db=db,
+        user_id=user.id,
+        movie_uuid=movie_uuid
+    )
+
+
+@router.post(
+    "/{movie_uuid}/rating",
+    response_model=RatingResponse
+)
+async def rate_movie_endpoint(
+        movie_uuid: UUID,
+        data: RatingCreate,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    rating = await rate_movie(
+        db=db,
+        user_id=user.id,
+        movie_uuid=movie_uuid,
+        value=data.value
+    )
+
+    return RatingResponse.model_validate(rating)
+
+
+@router.delete("/{movie_uuid}/rating", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_rating_endpoint(
+       movie_uuid: UUID,
+       db: AsyncSession = Depends(get_db),
+       user=Depends(get_current_active_user)
+):
+    await delete_rating(
         db=db,
         user_id=user.id,
         movie_uuid=movie_uuid

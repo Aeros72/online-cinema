@@ -10,7 +10,8 @@ from src.models.movies import (
     Director,
     Certification,
     Movie,
-    favorite_movies
+    favorite_movies,
+    Rating
 )
 from src.schemas.movies import MovieCreate
 
@@ -311,3 +312,63 @@ async def get_favorite_movies(
         .where(favorite_movies.c.user_id == user_id)
     )
     return list(result.scalars().all())
+
+
+async def rate_movie(
+        db: AsyncSession,
+        user_id: int,
+        movie_uuid: UUID,
+        value: int
+) -> Rating:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+
+    result = await db.execute(
+        select(Rating).where(
+            Rating.user_id == user_id,
+            Rating.movie_id == movie.id
+        )
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        existing.value = value
+        await db.commit()
+        await db.refresh(existing)
+        return existing
+
+    rating = Rating(
+        user_id=user_id,
+        movie_id=movie.id,
+        value=value
+    )
+
+    db.add(rating)
+    await db.commit()
+    await db.refresh(rating)
+
+    return rating
+
+
+async def delete_rating(
+        db: AsyncSession,
+        user_id: int,
+        movie_uuid: UUID
+) -> None:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+
+    result = await db.execute(
+        select(Rating).where(
+            Rating.user_id == user_id,
+            Rating.movie_id == movie.id
+        )
+    )
+    rating = result.scalar_one_or_none()
+
+    if rating is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Rating not found."
+        )
+
+    await db.delete(rating)
+    await db.commit()

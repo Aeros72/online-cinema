@@ -154,3 +154,25 @@ class Movie(Base):
         secondary=favorite_movies,
         back_populates="favorite_movies"
     )
+
+
+class Rating(Base):
+    __tablename__ = "ratings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    value: Mapped[int] = mapped_column(nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="uq_user_movie_rating"),
+    )
+
+    user: Mapped["User"] = relationship()
+    movie: Mapped["Movie"] = relationship()
