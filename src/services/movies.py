@@ -1,7 +1,6 @@
-from fastapi import HTTPException
-from sqlalchemy import select
+from fastapi import HTTPException, status
+from sqlalchemy import select, asc, desc, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette import status
 
 from src.models.movies import (
     Genre,
@@ -168,3 +167,61 @@ async def create_movie(db: AsyncSession, data: MovieCreate) -> Movie:
     await db.refresh(movie)
 
     return movie
+
+
+async def get_movies(
+        db: AsyncSession,
+        page: int = 1,
+        size: int = 10,
+        search: str | None = None,
+        year: int | None = None,
+        min_imdb: float | None = None,
+        genre_id: int | None = None,
+        sort_by: str = "id",
+        sort_order: str = "asc",
+) -> list[Movie]:
+    query = select(Movie)
+
+    if search:
+        query = query.where(
+            or_(
+                Movie.name.ilike(f"%{search}%"),
+                Movie.description.ilike(f"%{search}%")
+            )
+        )
+
+    if year is not None:
+        query = query.where(Movie.year == year)
+
+    if min_imdb is not None:
+        query = query.where(Movie.imdb >= min_imdb)
+
+    if genre_id is not None:
+        query = query.join(Movie.genres).where(Genre.id == genre_id)
+
+    allowed_sort_fields = {
+        "id": Movie.id,
+        "price": Movie.price,
+        "year": Movie.year,
+        "imdb": Movie.imdb,
+        "votes": Movie.votes
+    }
+
+    sort_column = allowed_sort_fields.get(sort_by)
+
+    if sort_column is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sort field."
+        )
+
+    if sort_order == "desc":
+        query = query.order_by(desc(sort_column))
+    else:
+        query = query.order_by(asc(sort_column))
+
+    offset = (page - 1) * size
+    query = query.offset(offset).limit(size)
+
+    result = await db.execute(query)
+    return list(result.scalars().unique().all())

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette import status
 
 from src.api.dependencies.auth import get_current_active_user
 from src.db.session import get_db
@@ -25,6 +26,7 @@ from src.services.movies import (
     create_director,
     get_certifications,
     create_certification,
+    get_movies,
     create_movie
 )
 
@@ -50,7 +52,7 @@ async def get_genres_endpoint(
         db: AsyncSession = Depends(get_db)
 ):
     genres = await get_genres(db=db)
-    return [GenreResponse.model_validate(g) for g in genres]
+    return [GenreResponse.model_validate(genre) for genre in genres]
 
 
 @router.post(
@@ -72,7 +74,7 @@ async def get_stars_endpoint(
         db: AsyncSession = Depends(get_db)
 ):
     stars = await get_stars(db=db)
-    return [StarResponse.model_validate(s) for s in stars]
+    return [StarResponse.model_validate(star) for star in stars]
 
 
 @router.post(
@@ -94,7 +96,7 @@ async def get_directors_endpoint(
         db: AsyncSession = Depends(get_db)
 ):
     directors = await get_directors(db=db)
-    return [DirectorResponse.model_validate(d) for d in directors]
+    return [DirectorResponse.model_validate(director) for director in directors]
 
 
 @router.post(
@@ -116,7 +118,7 @@ async def get_certifications_endpoint(
         db: AsyncSession = Depends(get_db)
 ):
     certifications = await get_certifications(db=db)
-    return [CertificationResponse.model_validate(c) for c in certifications]
+    return [CertificationResponse.model_validate(certification) for certification in certifications]
 
 
 @router.post(
@@ -131,3 +133,30 @@ async def create_movie_endpoint(
 ):
     movie = await create_movie(db=db, data=data)
     return MovieResponse.model_validate(movie)
+
+
+@router.get("", response_model=list[MovieResponse])
+async def get_movies_endpoint(
+        page: int = Query(default=1, ge=1),
+        size: int = Query(default=10, ge=1, le=100),
+        search: str | None = Query(default=None),
+        year: int | None = Query(default=None),
+        min_imdb: float | None = Query(default=None, ge=0, le=10),
+        genre_id: int | None = Query(default=None),
+        sort_by: Literal["id", "price", "year", "imdb", "votes"] = "id",
+        sort_order: Literal["asc", "desc"] = "asc",
+        db: AsyncSession = Depends(get_db)
+):
+    movies = await get_movies(
+        db=db,
+        page=page,
+        size=size,
+        search=search,
+        year=year,
+        min_imdb=min_imdb,
+        genre_id=genre_id,
+        sort_by=sort_by,
+        sort_order=sort_order
+    )
+
+    return [MovieResponse.model_validate(movie) for movie in movies]
