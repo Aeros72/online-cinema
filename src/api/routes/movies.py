@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,7 +28,8 @@ from src.services.movies import (
     get_certifications,
     create_certification,
     get_movies,
-    create_movie
+    create_movie,
+    get_movie_by_uuid
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -160,3 +162,12 @@ async def get_movies_endpoint(
     )
 
     return [MovieResponse.model_validate(movie) for movie in movies]
+
+
+@router.get("/{movie_uuid}", response_model=MovieResponse)
+async def get_movie_detail_endpoint(
+        movie_uuid: UUID,
+        db: AsyncSession = Depends(get_db)
+):
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+    return MovieResponse.model_validate(movie)

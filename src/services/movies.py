@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy import select, asc, desc, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -225,3 +227,19 @@ async def get_movies(
 
     result = await db.execute(query)
     return list(result.scalars().unique().all())
+
+
+async def get_movie_by_uuid(db: AsyncSession, movie_uuid: UUID) -> Movie:
+    result = await db.execute(
+        select(Movie).where(Movie.uuid == movie_uuid)
+    )
+
+    movie = result.scalar_one_or_none()
+
+    if movie is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found."
+        )
+
+    return movie
