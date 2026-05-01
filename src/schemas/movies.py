@@ -81,6 +81,8 @@ class MovieResponse(BaseModel):
     time: int
     imdb: float
     votes: int
+    average_rating: float | None = None
+    ratings_count: int = 0
     meta_score: float | None
     gross: float | None
     description: str

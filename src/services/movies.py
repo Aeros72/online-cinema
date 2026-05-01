@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, asc, desc, or_
+from sqlalchemy import select, asc, desc, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.movies import (
@@ -372,3 +372,22 @@ async def delete_rating(
 
     await db.delete(rating)
     await db.commit()
+
+
+async def get_movie_rating_stats(
+        db: AsyncSession,
+        movie_id: int
+) -> tuple[float | None, int]:
+    result = await db.execute(
+        select(
+            func.avg(Rating.value),
+            func.count(Rating.id)
+        ).where(Rating.movie_id == movie_id)
+    )
+
+    average_rating, ratings_count = result.one()
+
+    return (
+        round(float(average_rating), 2) if average_rating is not None else None,
+        ratings_count
+    )

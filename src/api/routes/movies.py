@@ -36,7 +36,8 @@ from src.services.movies import (
     remove_movie_from_favorites,
     get_favorite_movies,
     rate_movie,
-    delete_rating
+    delete_rating,
+    get_movie_rating_stats
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -168,7 +169,10 @@ async def get_movies_endpoint(
         sort_order=sort_order
     )
 
-    return [MovieResponse.model_validate(movie) for movie in movies]
+    return [
+        await build_movie_response(movie=movie, db=db)
+        for movie in movies
+    ]
 
 
 @router.get("/favorites", response_model=list[MovieResponse])
@@ -177,7 +181,10 @@ async def get_favorite_movies_endpoint(
         user=Depends(get_current_active_user)
 ):
     movies = await get_favorite_movies(db=db, user_id=user.id)
-    return [MovieResponse.model_validate(movie) for movie in movies]
+    return [
+        await build_movie_response(movie=movie, db=db)
+        for movie in movies
+    ]
 
 
 @router.get("/{movie_uuid}", response_model=MovieResponse)
@@ -186,7 +193,7 @@ async def get_movie_detail_endpoint(
         db: AsyncSession = Depends(get_db)
 ):
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
-    return MovieResponse.model_validate(movie)
+    return await build_movie_response(movie=movie, db=db)
 
 
 @router.post(
@@ -252,3 +259,19 @@ async def delete_rating_endpoint(
         user_id=user.id,
         movie_uuid=movie_uuid
     )
+
+
+async def build_movie_response(
+        movie,
+        db: AsyncSession
+) -> MovieResponse:
+    average_rating, ratings_count = await get_movie_rating_stats(
+        db=db,
+        movie_id=movie.id
+    )
+
+    response = MovieResponse.model_validate(movie)
+    response.average_rating = average_rating
+    response.ratings_count = ratings_count
+
+    return response
