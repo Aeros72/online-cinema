@@ -11,7 +11,8 @@ from src.models.movies import (
     Certification,
     Movie,
     favorite_movies,
-    Rating
+    Rating,
+    Comment
 )
 from src.schemas.movies import MovieCreate
 
@@ -391,3 +392,62 @@ async def get_movie_rating_stats(
         round(float(average_rating), 2) if average_rating is not None else None,
         ratings_count
     )
+
+
+async def create_comment(
+        db: AsyncSession,
+        user_id: int,
+        movie_uuid: UUID,
+        text: str
+) -> Comment:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+
+    comment = Comment(
+        user_id=user_id,
+        movie_id=movie.id,
+        text=text
+    )
+
+    db.add(comment)
+    await db.commit()
+    await db.refresh(comment)
+
+    return comment
+
+
+async def get_movie_comments(
+        db: AsyncSession,
+        movie_uuid: UUID
+) -> list[Comment]:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+
+    result = await db.execute(
+        select(Comment)
+        .where(Comment.movie_id == movie.id)
+        .order_by(Comment.created_at.desc())
+    )
+
+    return list(result.scalars().all())
+
+
+async def delete_comment(
+        db: AsyncSession,
+        user_id: int,
+        comment_id: int
+) -> None:
+    comment = await db.get(Comment, comment_id)
+
+    if comment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found."
+        )
+
+    if comment.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can delete only your own comments."
+        )
+
+    await db.delete(comment)
+    await db.commit()

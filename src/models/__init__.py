@@ -12,7 +12,8 @@ from src.models.movies import (
     Director,
     Certification,
     Movie,
-    Rating
+    Rating,
+    Comment
 )
 
 
@@ -28,5 +29,6 @@ __all__ = [
     "Director",
     "Certification",
     "Movie",
-    "Rating"
+    "Rating",
+    "Comment"
 ]

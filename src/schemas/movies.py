@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -103,6 +104,22 @@ class RatingResponse(BaseModel):
     user_id: int
     movie_id: int
     value: int
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+class CommentCreate(BaseModel):
+    text: str = Field(min_length=1, max_length=3000)
+
+
+class CommentResponse(BaseModel):
+    id: int
+    user_id: int
+    movie_id: int
+    text: str
+    created_at: datetime
 
     model_config = {
         "from_attributes": True

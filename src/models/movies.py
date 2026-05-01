@@ -1,7 +1,20 @@
 import uuid as python_uuid
+from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import String, Table, Integer, Float, Text, DECIMAL, ForeignKey, UniqueConstraint, Column
+from sqlalchemy import (
+    String,
+    Table,
+    Integer,
+    Float,
+    Text,
+    DECIMAL,
+    ForeignKey,
+    UniqueConstraint,
+    Column,
+    DateTime,
+    func
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -172,6 +185,29 @@ class Rating(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", "movie_id", name="uq_user_movie_rating"),
+    )
+
+    user: Mapped["User"] = relationship()
+    movie: Mapped["Movie"] = relationship()
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
     )
 
     user: Mapped["User"] = relationship()

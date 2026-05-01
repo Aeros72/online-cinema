@@ -18,7 +18,9 @@ from src.schemas.movies import (
     MovieResponse,
     MovieCreate,
     RatingResponse,
-    RatingCreate
+    RatingCreate,
+    CommentResponse,
+    CommentCreate
 )
 from src.services.movies import (
     get_genres,
@@ -37,7 +39,10 @@ from src.services.movies import (
     get_favorite_movies,
     rate_movie,
     delete_rating,
-    get_movie_rating_stats
+    get_movie_rating_stats,
+    create_comment,
+    get_movie_comments,
+    delete_comment
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -187,6 +192,19 @@ async def get_favorite_movies_endpoint(
     ]
 
 
+@router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_comment_endpoint(
+        comment_id: int,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+) -> None:
+    await delete_comment(
+        db=db,
+        user_id=user.id,
+        comment_id=comment_id
+    )
+
+
 @router.get("/{movie_uuid}", response_model=MovieResponse)
 async def get_movie_detail_endpoint(
         movie_uuid: UUID,
@@ -275,3 +293,36 @@ async def build_movie_response(
     response.ratings_count = ratings_count
 
     return response
+
+
+@router.post(
+    "/{movie_uuid}/comments",
+    response_model=CommentResponse,
+    status_code=status.HTTP_201_CREATED
+)
+async def create_comment_endpoint(
+        movie_uuid: UUID,
+        data: CommentCreate,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    comment = await create_comment(
+        db=db,
+        user_id=user.id,
+        movie_uuid=movie_uuid,
+        text=data.text
+    )
+
+    return CommentResponse.model_validate(comment)
+
+
+@router.get(
+    "/{movie_uuid}/comments",
+    response_model=list[CommentResponse]
+)
+async def get_movie_comments_endpoint(
+        movie_uuid: UUID,
+        db: AsyncSession = Depends(get_db)
+):
+    comments = await get_movie_comments(db=db, movie_uuid=movie_uuid)
+    return [CommentResponse.model_validate(comment) for comment in comments]
