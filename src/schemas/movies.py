@@ -124,3 +124,19 @@ class CommentResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class CommentReplyCreate(BaseModel):
+    text: str = Field(min_length=1, max_length=3000)
+
+
+class CommentReplyResponse(BaseModel):
+    id: int
+    comment_id: int
+    user_id: int
+    text: str
+    created_at: datetime
+
+    model_config = {
+        "from_attributes": True,
+    }

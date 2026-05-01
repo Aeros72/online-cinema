@@ -14,7 +14,9 @@ from src.models.movies import (
     Rating,
     Comment,
     MovieReaction,
-    MovieReactionEnum
+    MovieReactionEnum,
+    CommentLike,
+    CommentReply
 )
 from src.schemas.movies import MovieCreate
 
@@ -512,4 +514,90 @@ async def delete_movie_reaction(
         )
 
     await db.delete(reaction)
+    await db.commit()
+
+
+async def reply_to_comment(
+    db: AsyncSession,
+    user_id: int,
+    comment_id: int,
+    text: str,
+) -> CommentReply:
+    comment = await db.get(Comment, comment_id)
+
+    if comment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found.",
+        )
+
+    reply = CommentReply(
+        comment_id=comment_id,
+        user_id=user_id,
+        text=text,
+    )
+
+    db.add(reply)
+    await db.commit()
+    await db.refresh(reply)
+
+    return reply
+
+
+async def like_comment(
+    db: AsyncSession,
+    user_id: int,
+    comment_id: int,
+) -> None:
+    comment = await db.get(Comment, comment_id)
+
+    if comment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found.",
+        )
+
+    result = await db.execute(
+        select(CommentLike).where(
+            CommentLike.user_id == user_id,
+            CommentLike.comment_id == comment_id,
+        )
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Comment already liked.",
+        )
+
+    comment_like = CommentLike(
+        user_id=user_id,
+        comment_id=comment_id,
+    )
+
+    db.add(comment_like)
+    await db.commit()
+
+
+async def unlike_comment(
+    db: AsyncSession,
+    user_id: int,
+    comment_id: int,
+) -> None:
+    result = await db.execute(
+        select(CommentLike).where(
+            CommentLike.user_id == user_id,
+            CommentLike.comment_id == comment_id,
+        )
+    )
+    like = result.scalar_one_or_none()
+
+    if like is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment like not found.",
+        )
+
+    await db.delete(like)
     await db.commit()

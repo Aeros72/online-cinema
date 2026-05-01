@@ -21,7 +21,9 @@ from src.schemas.movies import (
     RatingResponse,
     RatingCreate,
     CommentResponse,
-    CommentCreate
+    CommentCreate,
+    CommentReplyCreate,
+    CommentReplyResponse
 )
 from src.services.movies import (
     get_genres,
@@ -45,7 +47,10 @@ from src.services.movies import (
     get_movie_comments,
     delete_comment,
     react_to_movie,
-    delete_movie_reaction
+    delete_movie_reaction,
+    reply_to_comment,
+    like_comment,
+    unlike_comment
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -205,6 +210,59 @@ async def delete_comment_endpoint(
         db=db,
         user_id=user.id,
         comment_id=comment_id
+    )
+
+
+@router.post(
+    "/comments/{comment_id}/replies",
+    response_model=CommentReplyResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def reply_to_comment_endpoint(
+    comment_id: int,
+    data: CommentReplyCreate,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_active_user),
+):
+    reply = await reply_to_comment(
+        db=db,
+        user_id=user.id,
+        comment_id=comment_id,
+        text=data.text,
+    )
+    return CommentReplyResponse.model_validate(reply)
+
+
+@router.post(
+    "/comments/{comment_id}/like",
+    status_code=status.HTTP_201_CREATED,
+)
+async def like_comment_endpoint(
+    comment_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_active_user),
+):
+    await like_comment(
+        db=db,
+        user_id=user.id,
+        comment_id=comment_id,
+    )
+    return {"detail": "Comment liked."}
+
+
+@router.delete(
+    "/comments/{comment_id}/like",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def unlike_comment_endpoint(
+    comment_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_active_user),
+) -> None:
+    await unlike_comment(
+        db=db,
+        user_id=user.id,
+        comment_id=comment_id,
     )
 
 

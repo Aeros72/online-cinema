@@ -14,7 +14,9 @@ from src.models.movies import (
     Movie,
     Rating,
     Comment,
-    MovieReaction
+    MovieReaction,
+    CommentLike,
+    CommentReply
 )
 from src.models.cart import (
     Cart,
@@ -42,5 +44,7 @@ __all__ = [
     "Comment",
     "Cart",
     "CartItem",
-    "MovieReaction"
+    "MovieReaction",
+    "CommentLike",
+    "CommentReply"
 ]
