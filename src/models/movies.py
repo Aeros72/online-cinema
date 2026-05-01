@@ -1,3 +1,4 @@
+import enum
 import uuid as python_uuid
 from datetime import datetime
 from decimal import Decimal
@@ -13,7 +14,8 @@ from sqlalchemy import (
     UniqueConstraint,
     Column,
     DateTime,
-    func
+    func,
+    Enum
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -208,6 +210,38 @@ class Comment(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False
+    )
+
+    user: Mapped["User"] = relationship()
+    movie: Mapped["Movie"] = relationship()
+
+
+class MovieReactionEnum(str, enum.Enum):
+    LIKE = "like"
+    DISLIKE = "dislike"
+
+
+class MovieReaction(Base):
+    __tablename__ = "movie_reactions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="uq_user_movie_reaction"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    reaction: Mapped[MovieReactionEnum] = mapped_column(
+        Enum(MovieReactionEnum),
+        nullable=False,
     )
 
     user: Mapped["User"] = relationship()

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.dependencies.auth import get_current_active_user
 from src.db.session import get_db
+from src.models.movies import MovieReactionEnum
 from src.schemas.movies import (
     GenreResponse,
     GenreCreate,
@@ -42,7 +43,9 @@ from src.services.movies import (
     get_movie_rating_stats,
     create_comment,
     get_movie_comments,
-    delete_comment
+    delete_comment,
+    react_to_movie,
+    delete_movie_reaction
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -326,3 +329,50 @@ async def get_movie_comments_endpoint(
 ):
     comments = await get_movie_comments(db=db, movie_uuid=movie_uuid)
     return [CommentResponse.model_validate(comment) for comment in comments]
+
+
+@router.post("/{movie_uuid}/like", status_code=status.HTTP_200_OK)
+async def like_movie_endpoint(
+        movie_uuid: UUID,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    await react_to_movie(
+        db=db,
+        user_id=user.id,
+        movie_uuid=movie_uuid,
+        reaction=MovieReactionEnum.LIKE
+    )
+
+    return {"detail": "Liked"}
+
+
+@router.post("/{movie_uuid}/dislike", status_code=status.HTTP_200_OK)
+async def dislike_movie_endpoint(
+    movie_uuid: UUID,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_active_user),
+):
+    await react_to_movie(
+        db=db,
+        user_id=user.id,
+        movie_uuid=movie_uuid,
+        reaction=MovieReactionEnum.DISLIKE,
+    )
+    return {"detail": "Disliked"}
+
+
+@router.delete(
+    "/{movie_uuid}/reaction",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_movie_reaction_endpoint(
+        movie_uuid: UUID,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    await delete_movie_reaction(
+        db=db,
+        user_id=user.id,
+        movie_uuid=movie_uuid
+    )

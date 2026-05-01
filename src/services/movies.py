@@ -12,7 +12,9 @@ from src.models.movies import (
     Movie,
     favorite_movies,
     Rating,
-    Comment
+    Comment,
+    MovieReaction,
+    MovieReactionEnum
 )
 from src.schemas.movies import MovieCreate
 
@@ -450,4 +452,64 @@ async def delete_comment(
         )
 
     await db.delete(comment)
+    await db.commit()
+
+
+async def react_to_movie(
+        db: AsyncSession,
+        user_id: int,
+        movie_uuid: UUID,
+        reaction: MovieReactionEnum
+) -> MovieReaction:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+
+    result = await db.execute(
+        select(MovieReaction).where(
+            MovieReaction.user_id == user_id,
+            MovieReaction.movie_id == movie.id
+        )
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        existing.reaction = reaction
+        await db.commit()
+        await db.refresh(existing)
+        return existing
+
+    new_reaction = MovieReaction(
+        user_id=user_id,
+        movie_id=movie.id,
+        reaction=reaction
+    )
+
+    db.add(new_reaction)
+    await db.commit()
+    await db.refresh(new_reaction)
+
+    return new_reaction
+
+
+async def delete_movie_reaction(
+        db: AsyncSession,
+        user_id: int,
+        movie_uuid: UUID
+) -> None:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+
+    result = await db.execute(
+        select(MovieReaction).where(
+            MovieReaction.user_id == user_id,
+            MovieReaction.movie_id == movie.id,
+        )
+    )
+    reaction = result.scalar_one_or_none()
+
+    if reaction is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reaction not found.",
+        )
+
+    await db.delete(reaction)
     await db.commit()
