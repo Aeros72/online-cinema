@@ -19,6 +19,8 @@ from src.models.movies import (
     CommentReply
 )
 from src.schemas.movies import MovieCreate
+from src.models.notifications import NotificationTypeEnum
+from src.services.notifications import create_notification
 
 
 async def create_genre(db: AsyncSession, name: str) -> Genre:
@@ -538,6 +540,15 @@ async def reply_to_comment(
     )
 
     db.add(reply)
+
+    if comment.user_id != user_id:
+        await create_notification(
+            db=db,
+            user_id=comment.user_id,
+            type_=NotificationTypeEnum.COMMENT_REPLY,
+            message="Someone replied to your comment.",
+        )
+
     await db.commit()
     await db.refresh(reply)
 
@@ -577,6 +588,15 @@ async def like_comment(
     )
 
     db.add(comment_like)
+
+    if comment.user_id != user_id:
+        await create_notification(
+            db=db,
+            user_id=comment.user_id,
+            type_=NotificationTypeEnum.COMMENT_LIKE,
+            message="Someone liked your comment.",
+        )
+
     await db.commit()
 
 

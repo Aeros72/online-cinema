@@ -26,6 +26,9 @@ from src.models.orders import (
     Order,
     OrderItem
 )
+from src.models.notifications import (
+    Notification
+)
 
 
 __all__ = [
@@ -46,5 +49,6 @@ __all__ = [
     "CartItem",
     "MovieReaction",
     "CommentLike",
-    "CommentReply"
+    "CommentReply",
+    "Notification"
 ]
