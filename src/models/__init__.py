@@ -19,6 +19,10 @@ from src.models.cart import (
     Cart,
     CartItem
 )
+from src.models.orders import (
+    Order,
+    OrderItem
+)
 
 
 __all__ = [
