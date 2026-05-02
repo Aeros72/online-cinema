@@ -55,7 +55,7 @@ class OrderItem(Base):
         ForeignKey("movies.id"),
         nullable=False
     )
-    price_ar_order: Mapped[Decimal] = mapped_column(
+    price_at_order: Mapped[Decimal] = mapped_column(
         DECIMAL(10, 2),
         nullable=False
     )
