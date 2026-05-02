@@ -70,3 +70,17 @@ async def create_order_from_cart(
     created_order = result.scalar_one()
 
     return created_order
+
+
+async def get_user_orders(
+        db: AsyncSession,
+        user_id: int
+) -> list[Order]:
+    result = await db.execute(
+        select(Order)
+        .where(Order.user_id == user_id)
+        .options(selectinload(Order.items))
+        .order_by(Order.created_at.desc())
+    )
+
+    return list(result.scalars().all())
