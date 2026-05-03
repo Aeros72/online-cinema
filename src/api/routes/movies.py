@@ -4,9 +4,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies.auth import get_current_active_user
+from src.api.dependencies.auth import get_current_active_user, require_roles
 from src.db.session import get_db
 from src.models.movies import MovieReactionEnum
+from src.models.accounts import UserGroupEnum
 from src.schemas.movies import (
     GenreResponse,
     GenreCreate,
@@ -64,7 +65,7 @@ router = APIRouter(prefix="/movies", tags=["Movies"])
 async def create_genre_endpoint(
         data: GenreCreate,
         db: AsyncSession = Depends(get_db),
-        user=Depends(get_current_active_user)
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
 ):
     genre = await create_genre(db=db, name=data.name)
     return GenreResponse.model_validate(genre)
@@ -86,7 +87,7 @@ async def get_genres_endpoint(
 async def create_star_endpoint(
         data: StarCreate,
         db: AsyncSession = Depends(get_db),
-        user=Depends(get_current_active_user)
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
 ):
     star = await create_star(db=db, name=data.name)
     return StarResponse.model_validate(star)
@@ -108,7 +109,7 @@ async def get_stars_endpoint(
 async def create_director_endpoint(
         data: DirectorCreate,
         db: AsyncSession = Depends(get_db),
-        user=Depends(get_current_active_user)
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
 ):
     director = await create_director(db=db, name=data.name)
     return DirectorResponse.model_validate(director)
@@ -130,7 +131,7 @@ async def get_directors_endpoint(
 async def create_certification_endpoint(
         data: CertificationCreate,
         db: AsyncSession = Depends(get_db),
-        user=Depends(get_current_active_user)
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
 ):
     certification = await create_certification(db=db, name=data.name)
     return CertificationResponse.model_validate(certification)
@@ -152,7 +153,7 @@ async def get_certifications_endpoint(
 async def create_movie_endpoint(
         data: MovieCreate,
         db: AsyncSession = Depends(get_db),
-        user=Depends(get_current_active_user)
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
 ):
     movie = await create_movie(db=db, data=data)
     return MovieResponse.model_validate(movie)

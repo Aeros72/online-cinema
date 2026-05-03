@@ -2,11 +2,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt, JWTError
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
 from src.db.session import get_db
-from src.models import User
+from src.models.accounts import User, UserGroupEnum
 
 security = HTTPBearer()
 
@@ -38,7 +39,11 @@ async def get_current_user(
             detail="Invalid token."
         )
 
-    result = await db.execute(select(User).where(User.id == int(user_id)))
+    result = await db.execute(
+        select(User)
+        .where(User.id == int(user_id))
+        .options(selectinload(User.group))
+    )
     user = result.scalar_one_or_none()
 
     if user is None:
@@ -60,3 +65,18 @@ async def get_current_active_user(
         )
 
     return user
+
+
+def require_roles(*allowed_roles: UserGroupEnum):
+    async def role_checker(
+            user: User = Depends(get_current_active_user)
+    ) -> User:
+        if user.group.name not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions."
+            )
+
+        return user
+
+    return role_checker
