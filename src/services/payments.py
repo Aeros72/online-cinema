@@ -70,3 +70,17 @@ async def pay_order(
     )
 
     return result.scalar_one()
+
+
+async def get_user_payments(
+        db: AsyncSession,
+        user_id: int
+) -> list[Payment]:
+    result = await db.execute(
+        select(Payment)
+        .where(Payment.user_id == user_id)
+        .options(selectinload(Payment.items))
+        .order_by(Payment.created_at.desc())
+    )
+
+    return list(result.scalars().all())
