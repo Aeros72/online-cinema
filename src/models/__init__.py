@@ -33,6 +33,9 @@ from src.models.payments import (
     Payment,
     PaymentItem
 )
+from src.models.purchases import (
+    PurchasedMovie
+)
 
 
 __all__ = [
@@ -56,5 +59,6 @@ __all__ = [
     "CommentReply",
     "Notification",
     "Payment",
-    "PaymentItem"
+    "PaymentItem",
+    "PurchasedMovie"
 ]

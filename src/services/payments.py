@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from src.models.orders import Order, OrderStatusEnum
 from src.models.payments import Payment, PaymentStatusEnum, PaymentItem
+from src.models.purchases import PurchasedMovie
 
 
 async def pay_order(
@@ -56,6 +57,13 @@ async def pay_order(
                 payment_id=payment.id,
                 order_item_id=order_item.id,
                 price_at_payment=order_item.price_at_order
+            )
+        )
+
+        db.add(
+            PurchasedMovie(
+                user_id=user_id,
+                movie_id=order_item.movie_id,
             )
         )
 
