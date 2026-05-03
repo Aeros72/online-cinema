@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from src.models.cart import Cart, CartItem
 from src.models.movies import Movie
+from src.models.purchases import PurchasedMovie
 
 
 async def get_cart_with_items(db: AsyncSession, user_id: int) -> Cart | None:
@@ -58,6 +59,20 @@ async def add_movie_to_cart(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Movie not found.",
+        )
+
+    purchase_result = await db.execute(
+        select(PurchasedMovie).where(
+            PurchasedMovie.user_id == user_id,
+            PurchasedMovie.movie_id == movie.id,
+        )
+    )
+    purchased_movie = purchase_result.scalar_one_or_none()
+
+    if purchased_movie is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Movie has already been purchased.",
         )
 
     existing_item = next(

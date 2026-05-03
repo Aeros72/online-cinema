@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from src.models.orders import Order, OrderStatusEnum, OrderItem
 from src.models.cart import Cart, CartItem
+from src.models.purchases import PurchasedMovie
 
 
 async def get_user_cart_with_items(
@@ -33,6 +34,22 @@ async def create_order_from_cart(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Cart is empty."
+        )
+
+    movie_ids = [item.movie_id for item in cart.items]
+
+    purchased_result = await db.execute(
+        select(PurchasedMovie.movie_id).where(
+            PurchasedMovie.user_id == user_id,
+            PurchasedMovie.movie_id.in_(movie_ids),
+        )
+    )
+    purchased_movie_ids = set(purchased_result.scalars().all())
+
+    if purchased_movie_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cart contains already purchased movies.",
         )
 
     total_amount = sum(
