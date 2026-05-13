@@ -2,6 +2,8 @@ import re
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from src.models.accounts import UserGroupEnum
+
 
 class UserRegisterRequest(BaseModel):
     email: EmailStr
@@ -78,3 +80,7 @@ class PasswordResetConfirmRequest(BaseModel):
             raise ValueError("Must contain digit")
 
         return value
+
+
+class ChangeUserGroupRequest(BaseModel):
+    group: UserGroupEnum

@@ -275,3 +275,52 @@ async def confirm_password_reset(
 
     await db.delete(db_token)
     await db.commit()
+
+
+async def activate_user_manually(
+        db: AsyncSession,
+        user_id: int
+) -> User:
+    user = await db.get(User, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    user.is_active = True
+    await db.commit()
+    await db.refresh(user)
+
+    return user
+
+
+async def change_user_group(
+        db: AsyncSession,
+        user_id: int,
+        group: UserGroupEnum
+) -> User:
+    user = await db.get(User, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    result = await db.execute(select(UserGroup).where(UserGroup.name == group))
+    user_group = result.scalar_one_or_none()
+
+    if user_group is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found."
+        )
+
+    user.group_id = user_group.id
+
+    await db.commit()
+    await db.refresh(user)
+
+    return user

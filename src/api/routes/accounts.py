@@ -1,8 +1,9 @@
 from fastapi import APIRouter, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies.auth import get_current_active_user
+from src.api.dependencies.auth import get_current_active_user, require_roles
 from src.db.session import get_db
+from src.models.accounts import UserGroupEnum
 from src.schemas.accounts import (
     UserResponse,
     UserRegisterRequest,
@@ -12,7 +13,8 @@ from src.schemas.accounts import (
     RefreshTokenRequest,
     ResendActivationRequest,
     PasswordResetRequest,
-    PasswordResetConfirmRequest
+    PasswordResetConfirmRequest,
+    ChangeUserGroupRequest
 )
 from src.services.accounts import (
     register_user,
@@ -22,7 +24,9 @@ from src.services.accounts import (
     activate_user,
     resend_activation_token,
     request_password_reset,
-    confirm_password_reset
+    confirm_password_reset,
+    activate_user_manually,
+    change_user_group
 )
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
@@ -117,3 +121,35 @@ async def reset_password_confirm(
         new_password=data.new_password
     )
     return {"message": "Password has been reset."}
+
+
+@router.post(
+    "/admin/users/{user_id}/activate",
+    response_model=UserResponse
+)
+async def admin_activate_user_endpoint(
+        user_id: int,
+        db: AsyncSession = Depends(get_db),
+        admin=Depends(require_roles(UserGroupEnum.ADMIN))
+):
+    user = await activate_user_manually(db=db, user_id=user_id)
+    return UserResponse.model_validate(user)
+
+
+@router.patch(
+    "/admin/users/{user_id}/group",
+    response_model=UserResponse
+)
+async def admin_change_user_group_endpoint(
+        user_id: int,
+        data: ChangeUserGroupRequest,
+        db: AsyncSession = Depends(get_db),
+        admin=Depends(require_roles(UserGroupEnum.ADMIN))
+):
+    user = await change_user_group(
+        db=db,
+        user_id=user_id,
+        group=data.group
+    )
+
+    return UserResponse.model_validate(user)
