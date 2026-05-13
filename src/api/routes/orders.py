@@ -1,13 +1,16 @@
 from fastapi import APIRouter, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies.auth import get_current_active_user
+from src.api.dependencies.auth import get_current_active_user, require_roles
 from src.db.session import get_db
+from src.models.accounts import UserGroupEnum
+from src.models.orders import OrderStatusEnum
 from src.schemas.orders import OrderResponse
 from src.services.orders import (
     create_order_from_cart,
     get_user_orders,
-    cancel_order
+    cancel_order,
+    get_admin_orders
 )
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -49,3 +52,19 @@ async def cancel_order_endpoint(
 ):
     order = await cancel_order(db=db, user_id=user.id, order_id=order_id)
     return OrderResponse.model_validate(order)
+
+
+@router.get("/admin", response_model=list[OrderResponse])
+async def get_admin_orders_endpoint(
+        user_id: int | None = None,
+        order_status: OrderStatusEnum | None = None,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
+):
+    orders = await get_admin_orders(
+        db=db,
+        user_id=user_id,
+        order_status=order_status
+    )
+
+    return [OrderResponse.model_validate(order) for order in orders]

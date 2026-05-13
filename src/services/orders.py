@@ -1,4 +1,3 @@
-from datetime import datetime
 from decimal import Decimal
 
 from fastapi import HTTPException, status
@@ -139,3 +138,22 @@ async def cancel_order(
     await db.refresh(order)
 
     return order
+
+
+async def get_admin_orders(
+        db: AsyncSession,
+        user_id: int | None = None,
+        order_status: OrderStatusEnum | None = None
+) -> list[Order]:
+    query = select(Order).options(selectinload(Order.items))
+
+    if user_id is not None:
+        query = query.where(Order.user_id == user_id)
+
+    if order_status is not None:
+        query = query.where(Order.status == order_status)
+
+    query = query.order_by(Order.created_at.desc())
+
+    result = await db.execute(query)
+    return list(result.scalars().all())
