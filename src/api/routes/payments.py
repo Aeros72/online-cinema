@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from src.api.dependencies.auth import get_current_active_user
+from src.api.dependencies.auth import get_current_active_user, require_roles
 from src.db.session import get_db
+from src.models.accounts import UserGroupEnum
+from src.models.payments import PaymentStatusEnum
 from src.schemas.payments import PaymentResponse
-from src.services.payments import pay_order, get_user_payments
+from src.services.payments import pay_order, get_user_payments, get_admin_payments
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -30,4 +32,20 @@ async def get_user_payments_endpoint(
         user=Depends(get_current_active_user)
 ):
     payments = await get_user_payments(db=db, user_id=user.id)
+    return [PaymentResponse.model_validate(payment) for payment in payments]
+
+
+@router.get("/admin", response_model=list[PaymentResponse])
+async def get_admin_payments_endpoint(
+        user_id: int | None = None,
+        payment_status: PaymentStatusEnum | None = None,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
+):
+    payments = await get_admin_payments(
+        db=db,
+        user_id=user_id,
+        payment_status=payment_status
+    )
+
     return [PaymentResponse.model_validate(payment) for payment in payments]

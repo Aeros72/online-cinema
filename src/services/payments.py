@@ -92,3 +92,22 @@ async def get_user_payments(
     )
 
     return list(result.scalars().all())
+
+
+async def get_admin_payments(
+        db: AsyncSession,
+        user_id: int | None = None,
+        payment_status: PaymentStatusEnum | None = None
+) -> list[Payment]:
+    query = select(Payment).options(selectinload(Payment.items))
+
+    if user_id is not None:
+        query = query.where(Payment.user_id == user_id)
+
+    if payment_status is not None:
+        query = query.where(Payment.status == payment_status)
+
+    query = query.order_by(Payment.created_at.desc())
+
+    result = await db.execute(query)
+    return list(result.scalars().all())
