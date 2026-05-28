@@ -140,3 +140,19 @@ class CommentReplyResponse(BaseModel):
     model_config = {
         "from_attributes": True,
     }
+
+
+class MovieUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    year: int | None = Field(default=None, ge=1888)
+    time: int | None = Field(default=None, gt=0)
+    imdb: float | None = Field(default=None, ge=0, le=10)
+    votes: int | None = Field(default=None, ge=0)
+    meta_score: float | None = Field(default=None, ge=0, le=100)
+    gross: float | None = Field(default=None, ge=0)
+    description: str | None = Field(default=None, min_length=1)
+    price: Decimal | None = Field(default=None, gt=0, max_digits=10, decimal_places=2)
+    certification_id: int | None = None
+    genre_ids: list[int] | None = None
+    star_ids: list[int] | None = None
+    director_ids: list[int] | None = None

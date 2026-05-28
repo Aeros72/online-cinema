@@ -24,7 +24,8 @@ from src.schemas.movies import (
     CommentResponse,
     CommentCreate,
     CommentReplyCreate,
-    CommentReplyResponse
+    CommentReplyResponse,
+    MovieUpdate
 )
 from src.services.movies import (
     get_genres,
@@ -51,7 +52,9 @@ from src.services.movies import (
     delete_movie_reaction,
     reply_to_comment,
     like_comment,
-    unlike_comment
+    unlike_comment,
+    update_movie,
+    delete_movie
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -265,6 +268,36 @@ async def unlike_comment_endpoint(
         user_id=user.id,
         comment_id=comment_id,
     )
+
+
+@router.patch(
+    "/{movie_uuid}",
+    response_model=MovieResponse,
+)
+async def update_movie_endpoint(
+    movie_uuid: UUID,
+    data: MovieUpdate,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)),
+):
+    movie = await update_movie(
+        db=db,
+        movie_uuid=movie_uuid,
+        data=data,
+    )
+    return await build_movie_response(movie=movie, db=db)
+
+
+@router.delete(
+    "/{movie_uuid}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_movie_endpoint(
+    movie_uuid: UUID,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)),
+) -> None:
+    await delete_movie(db=db, movie_uuid=movie_uuid)
 
 
 @router.get("/{movie_uuid}", response_model=MovieResponse)

@@ -18,8 +18,9 @@ from src.models.movies import (
     CommentLike,
     CommentReply
 )
-from src.schemas.movies import MovieCreate
 from src.models.notifications import NotificationTypeEnum
+from src.models.orders import OrderItem
+from src.schemas.movies import MovieCreate, MovieUpdate
 from src.services.notifications import create_notification
 
 
@@ -620,4 +621,100 @@ async def unlike_comment(
         )
 
     await db.delete(like)
+    await db.commit()
+
+
+async def update_movie(
+    db: AsyncSession,
+    movie_uuid: UUID,
+    data: MovieUpdate,
+) -> Movie:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+    update_data = data.model_dump(exclude_unset=True)
+
+    simple_fields = {
+        "name",
+        "year",
+        "time",
+        "imdb",
+        "votes",
+        "meta_score",
+        "gross",
+        "description",
+        "price",
+        "certification_id",
+    }
+
+    if "certification_id" in update_data:
+        certification = await db.get(Certification, update_data["certification_id"])
+        if certification is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Certification not found.",
+            )
+
+    for field in simple_fields:
+        if field in update_data:
+            setattr(movie, field, update_data[field])
+
+    if "genre_ids" in update_data:
+        genres_result = await db.execute(
+            select(Genre).where(Genre.id.in_(update_data["genre_ids"]))
+        )
+        genres = list(genres_result.scalars().all())
+
+        if len(genres) != len(set(update_data["genre_ids"])):
+            raise HTTPException(status_code=404, detail="One or more genres not found.")
+
+        movie.genres = genres
+
+    if "star_ids" in update_data:
+        stars_result = await db.execute(
+            select(Star).where(Star.id.in_(update_data["star_ids"]))
+        )
+        stars = list(stars_result.scalars().all())
+
+        if len(stars) != len(set(update_data["star_ids"])):
+            raise HTTPException(status_code=404, detail="One or more stars not found.")
+
+        movie.stars = stars
+
+    if "director_ids" in update_data:
+        directors_result = await db.execute(
+            select(Director).where(Director.id.in_(update_data["director_ids"]))
+        )
+        directors = list(directors_result.scalars().all())
+
+        if len(directors) != len(set(update_data["director_ids"])):
+            raise HTTPException(
+                status_code=404,
+                detail="One or more directors not found.",
+            )
+
+        movie.directors = directors
+
+    await db.commit()
+    await db.refresh(movie)
+
+    return movie
+
+
+async def delete_movie(
+    db: AsyncSession,
+    movie_uuid: UUID,
+) -> None:
+    movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
+
+    order_item_result = await db.execute(
+        select(OrderItem).where(OrderItem.movie_id == movie.id)
+    )
+    order_item = order_item_result.scalar_one_or_none()
+
+    if order_item is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete purchased movie.",
+        )
+
+    await db.delete(movie)
     await db.commit()
