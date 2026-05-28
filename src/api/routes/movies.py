@@ -196,10 +196,30 @@ async def get_movies_endpoint(
 
 @router.get("/favorites", response_model=list[MovieResponse])
 async def get_favorite_movies_endpoint(
-        db: AsyncSession = Depends(get_db),
-        user=Depends(get_current_active_user)
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=10, ge=1, le=100),
+    search: str | None = Query(default=None),
+    year: int | None = Query(default=None),
+    min_imdb: float | None = Query(default=None, ge=0, le=10),
+    genre_id: int | None = Query(default=None),
+    sort_by: Literal["id", "price", "year", "imdb", "votes"] = "id",
+    sort_order: Literal["asc", "desc"] = "asc",
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_active_user),
 ):
-    movies = await get_favorite_movies(db=db, user_id=user.id)
+    movies = await get_favorite_movies(
+        db=db,
+        user_id=user.id,
+        page=page,
+        size=size,
+        search=search,
+        year=year,
+        min_imdb=min_imdb,
+        genre_id=genre_id,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+
     return [
         await build_movie_response(movie=movie, db=db)
         for movie in movies

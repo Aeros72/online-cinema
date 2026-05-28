@@ -318,15 +318,73 @@ async def remove_movie_from_favorites(
 
 
 async def get_favorite_movies(
-        db: AsyncSession,
-        user_id: int
+    db: AsyncSession,
+    user_id: int,
+    page: int = 1,
+    size: int = 10,
+    search: str | None = None,
+    year: int | None = None,
+    min_imdb: float | None = None,
+    genre_id: int | None = None,
+    sort_by: str = "id",
+    sort_order: str = "asc",
 ) -> list[Movie]:
-    result = await db.execute(
+    query = (
         select(Movie)
         .join(favorite_movies, favorite_movies.c.movie_id == Movie.id)
         .where(favorite_movies.c.user_id == user_id)
     )
-    return list(result.scalars().all())
+
+    if search:
+        query = (
+            query
+            .outerjoin(Movie.stars)
+            .outerjoin(Movie.directors)
+            .where(
+                or_(
+                    Movie.name.ilike(f"%{search}%"),
+                    Movie.description.ilike(f"%{search}%"),
+                    Star.name.ilike(f"%{search}%"),
+                    Director.name.ilike(f"%{search}%"),
+                )
+            )
+        )
+
+    if year is not None:
+        query = query.where(Movie.year == year)
+
+    if min_imdb is not None:
+        query = query.where(Movie.imdb >= min_imdb)
+
+    if genre_id is not None:
+        query = query.join(Movie.genres).where(Genre.id == genre_id)
+
+    allowed_sort_fields = {
+        "id": Movie.id,
+        "price": Movie.price,
+        "year": Movie.year,
+        "imdb": Movie.imdb,
+        "votes": Movie.votes,
+    }
+
+    sort_column = allowed_sort_fields.get(sort_by)
+
+    if sort_column is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sort field.",
+        )
+
+    if sort_order == "desc":
+        query = query.order_by(desc(sort_column))
+    else:
+        query = query.order_by(asc(sort_column))
+
+    offset = (page - 1) * size
+    query = query.offset(offset).limit(size)
+
+    result = await db.execute(query)
+    return list(result.scalars().unique().all())
 
 
 async def rate_movie(
