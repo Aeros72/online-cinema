@@ -10,9 +10,10 @@ from src.models.accounts import (
     UserGroupEnum,
     RefreshToken,
     ActivationToken,
-    PasswordResetToken
+    PasswordResetToken,
+    UserProfile
 )
-from src.schemas.accounts import UserRegisterRequest, UserLoginRequest
+from src.schemas.accounts import UserRegisterRequest, UserLoginRequest, UserProfileUpdateRequest
 from src.services.security import (
     create_access_token,
     create_refresh_token,
@@ -341,3 +342,42 @@ async def change_password(
     user.hashed_password = hash_password(new_password)
 
     await db.commit()
+
+
+async def get_or_create_user_profile(
+        db: AsyncSession,
+        user_id: int
+) -> UserProfile:
+    result = await db.execute(
+        select(UserProfile).where(UserProfile.user_id == user_id)
+    )
+    profile = result.scalar_one_or_none()
+
+    if profile is not None:
+        return profile
+
+    profile = UserProfile(user_id=user_id)
+    db.add(profile)
+
+    await db.commit()
+    await db.refresh(profile)
+
+    return profile
+
+
+async def update_user_profile(
+        db: AsyncSession,
+        user_id: int,
+        data: UserProfileUpdateRequest
+) -> UserProfile:
+    profile = await get_or_create_user_profile(db=db, user_id=user_id)
+
+    update_data = data.model_dump(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(profile, field, value)
+
+    await db.commit()
+    await db.refresh(profile)
+
+    return profile

@@ -15,7 +15,9 @@ from src.schemas.accounts import (
     PasswordResetRequest,
     PasswordResetConfirmRequest,
     ChangeUserGroupRequest,
-    ChangePasswordRequest
+    ChangePasswordRequest,
+    UserProfileResponse,
+    UserProfileUpdateRequest
 )
 from src.services.accounts import (
     register_user,
@@ -28,7 +30,9 @@ from src.services.accounts import (
     confirm_password_reset,
     activate_user_manually,
     change_user_group,
-    change_password
+    change_password,
+    get_or_create_user_profile,
+    update_user_profile
 )
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
@@ -171,3 +175,27 @@ async def change_password_endpoint(
     )
 
     return {"message": "Password has been changed."}
+
+
+@router.get("/profile", response_model=UserProfileResponse)
+async def get_profile_endpoint(
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    profile = await get_or_create_user_profile(db=db, user_id=user.id)
+    return UserProfileResponse.model_validate(profile)
+
+
+@router.patch("/profile", response_model=UserProfileResponse)
+async def update_profile_endpoint(
+        data: UserProfileUpdateRequest,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    profile = await update_user_profile(
+        db=db,
+        user_id=user.id,
+        data=data
+    )
+
+    return UserProfileResponse.model_validate(profile)

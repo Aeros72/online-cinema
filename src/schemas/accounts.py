@@ -1,8 +1,9 @@
 import re
+from datetime import date
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from src.models.accounts import UserGroupEnum
+from src.models.accounts import UserGroupEnum, GenderEnum
 
 
 class UserRegisterRequest(BaseModel):
@@ -94,3 +95,27 @@ class ChangePasswordRequest(BaseModel):
     @classmethod
     def validate_new_password_complexity(cls, value: str) -> str:
         return UserRegisterRequest.validate_password_complexity(value)
+
+
+class UserProfileResponse(BaseModel):
+    id: int
+    user_id: int
+    first_name: str | None
+    last_name: str | None
+    avatar: str | None
+    gender: GenderEnum | None
+    date_of_birth: date | None
+    info: str | None
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+class UserProfileUpdateRequest(BaseModel):
+    first_name: str | None = Field(default=None, max_length=100)
+    last_name: str | None = Field(default=None, max_length=100)
+    avatar: str | None = Field(default=None, max_length=255)
+    gender: GenderEnum | None = None
+    date_of_birth: date | None = None
+    info: str | None = None
