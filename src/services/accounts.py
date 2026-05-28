@@ -324,3 +324,20 @@ async def change_user_group(
     await db.refresh(user)
 
     return user
+
+
+async def change_password(
+        db: AsyncSession,
+        user: User,
+        old_password: str,
+        new_password: str
+) -> None:
+    if not verify_password(old_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Old password is incorrect."
+        )
+
+    user.hashed_password = hash_password(new_password)
+
+    await db.commit()

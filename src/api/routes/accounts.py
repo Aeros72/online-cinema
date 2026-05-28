@@ -14,7 +14,8 @@ from src.schemas.accounts import (
     ResendActivationRequest,
     PasswordResetRequest,
     PasswordResetConfirmRequest,
-    ChangeUserGroupRequest
+    ChangeUserGroupRequest,
+    ChangePasswordRequest
 )
 from src.services.accounts import (
     register_user,
@@ -26,7 +27,8 @@ from src.services.accounts import (
     request_password_reset,
     confirm_password_reset,
     activate_user_manually,
-    change_user_group
+    change_user_group,
+    change_password
 )
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
@@ -153,3 +155,19 @@ async def admin_change_user_group_endpoint(
     )
 
     return UserResponse.model_validate(user)
+
+
+@router.post("/password/change")
+async def change_password_endpoint(
+        data: ChangePasswordRequest,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    await change_password(
+        db=db,
+        user=user,
+        old_password=data.old_password,
+        new_password=data.new_password
+    )
+
+    return {"message": "Password has been changed."}

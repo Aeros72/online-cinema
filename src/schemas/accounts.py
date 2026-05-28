@@ -84,3 +84,13 @@ class PasswordResetConfirmRequest(BaseModel):
 
 class ChangeUserGroupRequest(BaseModel):
     group: UserGroupEnum
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password_complexity(cls, value: str) -> str:
+        return UserRegisterRequest.validate_password_complexity(value)
