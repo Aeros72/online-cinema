@@ -195,10 +195,17 @@ async def get_movies(
     query = select(Movie)
 
     if search:
-        query = query.where(
-            or_(
-                Movie.name.ilike(f"%{search}%"),
-                Movie.description.ilike(f"%{search}%")
+        query = (
+            query
+            .outerjoin(Movie.stars)
+            .outerjoin(Movie.directors)
+            .where(
+                or_(
+                    Movie.name.ilike(f"%{search}%"),
+                    Movie.description.ilike(f"%{search}%"),
+                    Star.name.ilike(f"%{search}%"),
+                    Director.name.ilike(f"%{search}%"),
+                )
             )
         )
 
