@@ -162,3 +162,19 @@ class GenreWithCountResponse(BaseModel):
     id: int
     name: str
     movies_count: int
+
+
+class GenreUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class StarUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=150)
+
+
+class DirectorUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=150)
+
+
+class CertificationUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=50)

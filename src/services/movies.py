@@ -809,3 +809,134 @@ async def get_genres_with_movie_counts(
         }
         for row in rows
     ]
+
+
+async def update_genre(db: AsyncSession, genre_id: int, name: str) -> Genre:
+    genre = await db.get(Genre, genre_id)
+
+    if genre is None:
+        raise HTTPException(status_code=404, detail="Genre not found.")
+
+    existing_result = await db.execute(
+        select(Genre).where(Genre.name == name, Genre.id != genre_id)
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="Genre already exists.")
+
+    genre.name = name
+    await db.commit()
+    await db.refresh(genre)
+
+    return genre
+
+
+async def delete_genre(db: AsyncSession, genre_id: int) -> None:
+    genre = await db.get(Genre, genre_id)
+
+    if genre is None:
+        raise HTTPException(status_code=404, detail="Genre not found.")
+
+    await db.delete(genre)
+    await db.commit()
+
+
+async def update_star(db: AsyncSession, star_id: int, name: str) -> Star:
+    star = await db.get(Star, star_id)
+
+    if star is None:
+        raise HTTPException(status_code=404, detail="Star not found.")
+
+    existing_result = await db.execute(
+        select(Star).where(Star.name == name, Star.id != star_id)
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="Star already exists.")
+
+    star.name = name
+    await db.commit()
+    await db.refresh(star)
+
+    return star
+
+
+async def delete_star(db: AsyncSession, star_id: int) -> None:
+    star = await db.get(Star, star_id)
+
+    if star is None:
+        raise HTTPException(status_code=404, detail="Star not found.")
+
+    await db.delete(star)
+    await db.commit()
+
+
+async def update_director(db: AsyncSession, director_id: int, name: str) -> Director:
+    director = await db.get(Director, director_id)
+
+    if director is None:
+        raise HTTPException(status_code=404, detail="Director not found.")
+
+    existing_result = await db.execute(
+        select(Director).where(Director.name == name, Director.id != director_id)
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="Director already exists.")
+
+    director.name = name
+    await db.commit()
+    await db.refresh(director)
+
+    return director
+
+
+async def delete_director(db: AsyncSession, director_id: int) -> None:
+    director = await db.get(Director, director_id)
+
+    if director is None:
+        raise HTTPException(status_code=404, detail="Director not found.")
+
+    await db.delete(director)
+    await db.commit()
+
+
+async def update_certification(
+    db: AsyncSession,
+    certification_id: int,
+    name: str,
+) -> Certification:
+    certification = await db.get(Certification, certification_id)
+
+    if certification is None:
+        raise HTTPException(status_code=404, detail="Certification not found.")
+
+    existing_result = await db.execute(
+        select(Certification).where(
+            Certification.name == name,
+            Certification.id != certification_id,
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="Certification already exists.")
+
+    certification.name = name
+    await db.commit()
+    await db.refresh(certification)
+
+    return certification
+
+
+async def delete_certification(db: AsyncSession, certification_id: int) -> None:
+    certification = await db.get(Certification, certification_id)
+
+    if certification is None:
+        raise HTTPException(status_code=404, detail="Certification not found.")
+
+    await db.delete(certification)
+    await db.commit()

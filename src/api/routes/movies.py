@@ -26,7 +26,11 @@ from src.schemas.movies import (
     CommentReplyCreate,
     CommentReplyResponse,
     MovieUpdate,
-    GenreWithCountResponse
+    GenreWithCountResponse,
+    GenreUpdate,
+    StarUpdate,
+    DirectorUpdate,
+    CertificationUpdate
 )
 from src.services.movies import (
     get_genres,
@@ -56,7 +60,15 @@ from src.services.movies import (
     unlike_comment,
     update_movie,
     delete_movie,
-    get_genres_with_movie_counts
+    get_genres_with_movie_counts,
+    update_genre,
+    delete_genre,
+    update_star,
+    delete_star,
+    update_director,
+    delete_director,
+    update_certification,
+    delete_certification
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -300,6 +312,97 @@ async def get_genres_with_counts_endpoint(
         db: AsyncSession = Depends(get_db)
 ):
     return await get_genres_with_movie_counts(db=db)
+
+
+@router.patch("/genres/{genre_id}", response_model=GenreResponse)
+async def update_genre_endpoint(
+        genre_id: int,
+        data: GenreUpdate,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
+):
+    genre = await update_genre(db=db, genre_id=genre_id, name=data.name)
+    return GenreResponse.model_validate(genre)
+
+
+@router.delete("/genres/{genre_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_genre_endpoint(
+        genre_id: int,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
+):
+    await delete_genre(db=db, genre_id=genre_id)
+
+
+@router.patch("/stars/{star_id}", response_model=StarResponse)
+async def update_star_endpoint(
+    star_id: int,
+    data: StarUpdate,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)),
+):
+    star = await update_star(db=db, star_id=star_id, name=data.name)
+    return StarResponse.model_validate(star)
+
+
+@router.delete("/stars/{star_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_star_endpoint(
+    star_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)),
+) -> None:
+    await delete_star(db=db, star_id=star_id)
+
+
+@router.patch("/directors/{director_id}", response_model=DirectorResponse)
+async def update_director_endpoint(
+    director_id: int,
+    data: DirectorUpdate,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)),
+):
+    director = await update_director(
+        db=db,
+        director_id=director_id,
+        name=data.name,
+    )
+    return DirectorResponse.model_validate(director)
+
+
+@router.delete("/directors/{director_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_director_endpoint(
+    director_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)),
+) -> None:
+    await delete_director(db=db, director_id=director_id)
+
+
+@router.patch("/certifications/{certification_id}", response_model=CertificationResponse)
+async def update_certification_endpoint(
+    certification_id: int,
+    data: CertificationUpdate,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)),
+):
+    certification = await update_certification(
+        db=db,
+        certification_id=certification_id,
+        name=data.name,
+    )
+    return CertificationResponse.model_validate(certification)
+
+
+@router.delete(
+    "/certifications/{certification_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_certification_endpoint(
+    certification_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)),
+) -> None:
+    await delete_certification(db=db, certification_id=certification_id)
 
 
 @router.patch(
