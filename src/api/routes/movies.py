@@ -25,7 +25,8 @@ from src.schemas.movies import (
     CommentCreate,
     CommentReplyCreate,
     CommentReplyResponse,
-    MovieUpdate
+    MovieUpdate,
+    GenreWithCountResponse
 )
 from src.services.movies import (
     get_genres,
@@ -54,7 +55,8 @@ from src.services.movies import (
     like_comment,
     unlike_comment,
     update_movie,
-    delete_movie
+    delete_movie,
+    get_genres_with_movie_counts
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -268,6 +270,16 @@ async def unlike_comment_endpoint(
         user_id=user.id,
         comment_id=comment_id,
     )
+
+
+@router.get(
+    "/genres/with-counts",
+    response_model=list[GenreWithCountResponse]
+)
+async def get_genres_with_counts_endpoint(
+        db: AsyncSession = Depends(get_db)
+):
+    return await get_genres_with_movie_counts(db=db)
 
 
 @router.patch(

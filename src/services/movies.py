@@ -725,3 +725,29 @@ async def delete_movie(
 
     await db.delete(movie)
     await db.commit()
+
+
+async def get_genres_with_movie_counts(
+        db: AsyncSession
+) -> list[dict]:
+    result = await db.execute(
+        select(
+            Genre.id,
+            Genre.name,
+            func.count(Movie.id).label("movies_count")
+        )
+        .outerjoin(Genre.movies)
+        .group_by(Genre.id)
+        .order_by(Genre.name)
+    )
+
+    rows = result.all()
+
+    return [
+        {
+            "id": row.id,
+            "name": row.name,
+            "movies_count": row.movies_count,
+        }
+        for row in rows
+    ]

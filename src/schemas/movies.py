@@ -156,3 +156,9 @@ class MovieUpdate(BaseModel):
     genre_ids: list[int] | None = None
     star_ids: list[int] | None = None
     director_ids: list[int] | None = None
+
+
+class GenreWithCountResponse(BaseModel):
+    id: int
+    name: str
+    movies_count: int
