@@ -7,6 +7,7 @@ from src.api.routes.notifications import router as notifications_router
 from src.api.routes.orders import router as orders_router
 from src.api.routes.payments import router as payments_router
 from src.api.routes.purchases import router as purchases_router
+from src.api.routes.docs import router as docs_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -17,3 +18,4 @@ api_router.include_router(notifications_router)
 api_router.include_router(orders_router)
 api_router.include_router(payments_router)
 api_router.include_router(purchases_router)
+api_router.include_router(docs_router)
