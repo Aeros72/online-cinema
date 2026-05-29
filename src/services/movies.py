@@ -838,6 +838,19 @@ async def delete_genre(db: AsyncSession, genre_id: int) -> None:
     if genre is None:
         raise HTTPException(status_code=404, detail="Genre not found.")
 
+    result = await db.execute(
+        select(Movie)
+        .join(Movie.genres)
+        .where(Genre.id == genre_id)
+    )
+    movie = result.scalar_one_or_none()
+
+    if movie is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete genre that is used by movies.",
+        )
+
     await db.delete(genre)
     await db.commit()
 
@@ -869,6 +882,19 @@ async def delete_star(db: AsyncSession, star_id: int) -> None:
     if star is None:
         raise HTTPException(status_code=404, detail="Star not found.")
 
+    result = await db.execute(
+        select(Movie)
+        .join(Movie.stars)
+        .where(Star.id == star_id)
+    )
+    movie = result.scalar_one_or_none()
+
+    if movie is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete star that is used by movies.",
+        )
+
     await db.delete(star)
     await db.commit()
 
@@ -899,6 +925,19 @@ async def delete_director(db: AsyncSession, director_id: int) -> None:
 
     if director is None:
         raise HTTPException(status_code=404, detail="Director not found.")
+
+    result = await db.execute(
+        select(Movie)
+        .join(Movie.directors)
+        .where(Director.id == director_id)
+    )
+    movie = result.scalar_one_or_none()
+
+    if movie is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete director that is used by movies.",
+        )
 
     await db.delete(director)
     await db.commit()
@@ -937,6 +976,17 @@ async def delete_certification(db: AsyncSession, certification_id: int) -> None:
 
     if certification is None:
         raise HTTPException(status_code=404, detail="Certification not found.")
+
+    result = await db.execute(
+        select(Movie).where(Movie.certification_id == certification_id)
+    )
+    movie = result.scalar_one_or_none()
+
+    if movie is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete certification that is used by movies.",
+        )
 
     await db.delete(certification)
     await db.commit()
