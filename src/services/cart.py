@@ -148,3 +148,18 @@ async def clear_cart(db: AsyncSession, user_id: int) -> None:
         await db.delete(item)
 
     await db.commit()
+
+
+async def get_all_carts(
+        db: AsyncSession
+) -> list[Cart]:
+    result = await db.execute(
+        select(Cart)
+        .options(
+            selectinload(Cart.items)
+            .selectinload(CartItem.movie)
+        )
+        .order_by(Cart.id)
+    )
+
+    return list(result.scalars().all())

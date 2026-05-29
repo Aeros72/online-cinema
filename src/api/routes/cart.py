@@ -3,14 +3,16 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies.auth import get_current_active_user
+from src.api.dependencies.auth import get_current_active_user, require_roles
 from src.db.session import get_db
+from src.models.accounts import UserGroupEnum
 from src.schemas.cart import CartResponse
 from src.services.cart import (
     get_cart,
     add_movie_to_cart,
     remove_movie_from_cart,
-    clear_cart
+    clear_cart,
+    get_all_carts
 )
 
 router = APIRouter(prefix="/cart", tags=["Cart"])
@@ -66,3 +68,18 @@ async def clear_cart_endpoint(
     user=Depends(get_current_active_user)
 ) -> None:
     await clear_cart(db=db, user_id=user.id)
+
+
+@router.get(
+    "/admin",
+    response_model=list[CartResponse]
+)
+async def get_all_carts_endpoint(
+        db: AsyncSession = Depends(get_db),
+        user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
+):
+    carts = await get_all_carts(db=db)
+
+    return [
+        CartResponse.model_validate(cart) for cart in carts
+    ]
