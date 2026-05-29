@@ -10,6 +10,7 @@ from src.db.base import Base
 class NotificationTypeEnum(str, enum.Enum):
     COMMENT_REPLY = "comment_reply"
     COMMENT_LIKE = "comment_like"
+    MOVIE_IN_CART_DELETE_ATTEMPT = "movie_in_cart_delete_attempt"
 
 
 class Notification(Base):

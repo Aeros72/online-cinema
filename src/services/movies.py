@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select, asc, desc, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.accounts import User, UserGroup, UserGroupEnum
 from src.models.movies import (
     Genre,
     Star,
@@ -18,6 +19,7 @@ from src.models.movies import (
     CommentLike,
     CommentReply
 )
+from src.models.cart import CartItem
 from src.models.notifications import NotificationTypeEnum
 from src.models.orders import OrderItem
 from src.schemas.movies import MovieCreate, MovieUpdate
@@ -780,6 +782,31 @@ async def delete_movie(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot delete purchased movie.",
         )
+
+    cart_items_result = await db.execute(
+        select(CartItem).where(CartItem.movie_id == movie.id)
+    )
+    cart_item = cart_items_result.scalar_one_or_none()
+
+    if cart_item is not None:
+        moderators_result = await db.execute(
+            select(User)
+            .join(User.group)
+            .where(
+                UserGroup.name.in_(
+                    [UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN]
+                )
+            )
+        )
+        moderators = list(moderators_result.scalars().all())
+
+        for moderator in moderators:
+            await create_notification(
+                db=db,
+                user_id=moderator.id,
+                type_=NotificationTypeEnum.MOVIE_IN_CART_DELETE_ATTEMPT,
+                message=f'Movie "{movie.name}" existed in users carts during delete attempt.',
+            )
 
     await db.delete(movie)
     await db.commit()
