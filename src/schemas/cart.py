@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from src.schemas.movies import GenreResponse
+
 
 class CartMovieResponse(BaseModel):
     id: int
@@ -11,6 +13,7 @@ class CartMovieResponse(BaseModel):
     name: str
     year: int
     price: Decimal
+    genres: list[GenreResponse]
 
     model_config = {
         "from_attributes": True

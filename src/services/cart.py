@@ -14,7 +14,7 @@ async def get_cart_with_items(db: AsyncSession, user_id: int) -> Cart | None:
     result = await db.execute(
         select(Cart)
         .where(Cart.user_id == user_id)
-        .options(selectinload(Cart.items).selectinload(CartItem.movie))
+        .options(selectinload(Cart.items).selectinload(CartItem.movie).selectinload(Movie.genres))
         .execution_options(populate_existing=True)
     )
     return result.scalar_one_or_none()
@@ -158,6 +158,7 @@ async def get_all_carts(
         .options(
             selectinload(Cart.items)
             .selectinload(CartItem.movie)
+            .selectinload(Movie.genres)
         )
         .order_by(Cart.id)
     )
