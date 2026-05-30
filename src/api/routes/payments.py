@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -39,13 +41,17 @@ async def get_user_payments_endpoint(
 async def get_admin_payments_endpoint(
         user_id: int | None = None,
         payment_status: PaymentStatusEnum | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
         db: AsyncSession = Depends(get_db),
         user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
 ):
     payments = await get_admin_payments(
         db=db,
         user_id=user_id,
-        payment_status=payment_status
+        payment_status=payment_status,
+        date_from=date_from,
+        date_to=date_to
     )
 
     return [PaymentResponse.model_validate(payment) for payment in payments]

@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
 
@@ -108,7 +109,9 @@ async def get_user_payments(
 async def get_admin_payments(
         db: AsyncSession,
         user_id: int | None = None,
-        payment_status: PaymentStatusEnum | None = None
+        payment_status: PaymentStatusEnum | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None
 ) -> list[Payment]:
     query = select(Payment).options(selectinload(Payment.items))
 
@@ -117,6 +120,12 @@ async def get_admin_payments(
 
     if payment_status is not None:
         query = query.where(Payment.status == payment_status)
+
+    if date_from is not None:
+        query = query.where(Payment.created_at >= date_from)
+
+    if date_to is not None:
+        query = query.where(Payment.created_at <= date_to)
 
     query = query.order_by(Payment.created_at.desc())
 
