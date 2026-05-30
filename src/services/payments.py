@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import uuid4
 
 from fastapi import HTTPException, status
@@ -5,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.models.orders import Order, OrderStatusEnum
+from src.models.orders import Order, OrderStatusEnum, OrderItem
 from src.models.payments import Payment, PaymentStatusEnum, PaymentItem
 from src.models.purchases import PurchasedMovie
 
@@ -18,7 +19,9 @@ async def pay_order(
     result = await db.execute(
         select(Order)
         .where(Order.id == order_id)
-        .options(selectinload(Order.items))
+        .options(
+            selectinload(Order.items).selectinload(OrderItem.movie)
+        )
     )
     order = result.scalar_one_or_none()
 
@@ -40,11 +43,19 @@ async def pay_order(
             detail="Only pending orders can be paid."
         )
 
+    actual_total_amount = sum(
+        (item.movie.price for item in order.items),
+        Decimal("0.00"),
+    )
+
+    if actual_total_amount != order.total_amount:
+        order.total_amount = actual_total_amount
+
     payment = Payment(
         user_id=user_id,
         order_id=order.id,
         status=PaymentStatusEnum.SUCCESSFUL,
-        amount=order.total_amount,
+        amount=actual_total_amount,
         external_payment_id=f"fake_{uuid4()}",
     )
 
@@ -56,7 +67,7 @@ async def pay_order(
             PaymentItem(
                 payment_id=payment.id,
                 order_item_id=order_item.id,
-                price_at_payment=order_item.price_at_order
+                price_at_payment=order_item.movie.price,
             )
         )
 
