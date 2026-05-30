@@ -51,6 +51,27 @@ async def create_order_from_cart(
             detail="Cart contains already purchased movies.",
         )
 
+    pending_orders_result = await db.execute(
+        select(Order)
+        .where(
+            Order.user_id == user_id,
+            Order.status == OrderStatusEnum.PENDING,
+        )
+        .options(selectinload(Order.items))
+    )
+    pending_orders = list(pending_orders_result.scalars().all())
+
+    cart_movie_ids = set(movie_ids)
+
+    for pending_order in pending_orders:
+        pending_movie_ids = {item.movie_id for item in pending_order.items}
+
+        if pending_movie_ids == cart_movie_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You already have a pending order with the same movies.",
+            )
+
     total_amount = sum(
         (item.movie.price for item in cart.items),
         Decimal("0.00")
