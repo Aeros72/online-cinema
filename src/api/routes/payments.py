@@ -9,7 +9,12 @@ from src.db.session import get_db
 from src.models.accounts import UserGroupEnum
 from src.models.payments import PaymentStatusEnum
 from src.schemas.payments import PaymentResponse
-from src.services.payments import pay_order, get_user_payments, get_admin_payments
+from src.services.payments import (
+    pay_order,
+    get_user_payments,
+    get_admin_payments,
+    refund_payment
+)
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -55,3 +60,21 @@ async def get_admin_payments_endpoint(
     )
 
     return [PaymentResponse.model_validate(payment) for payment in payments]
+
+
+@router.post(
+    "/{payment_id}/refund",
+    response_model=PaymentResponse
+)
+async def refund_payment_endpoint(
+        payment_id: int,
+        db: AsyncSession = Depends(get_db),
+        user=Depends(get_current_active_user)
+):
+    payment = await refund_payment(
+        db=db,
+        user_id=user.id,
+        payment_id=payment_id
+    )
+
+    return PaymentResponse.model_validate(payment)

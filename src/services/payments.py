@@ -131,3 +131,40 @@ async def get_admin_payments(
 
     result = await db.execute(query)
     return list(result.scalars().all())
+
+
+async def refund_payment(
+        db: AsyncSession,
+        user_id: int,
+        payment_id: int
+) -> Payment:
+    result = await db.execute(
+        select(Payment).where(Payment.id == payment_id)
+        .options(selectinload(Payment.items))
+    )
+    payment = result.scalar_one_or_none()
+
+    if payment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Payment not found."
+        )
+
+    if payment.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your payment."
+        )
+
+    if payment.status != PaymentStatusEnum.SUCCESSFUL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only successful payments can be refunded."
+        )
+
+    payment.status = PaymentStatusEnum.REFUNDED
+
+    await db.commit()
+    await db.refresh(payment)
+
+    return payment
