@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -58,13 +60,17 @@ async def cancel_order_endpoint(
 async def get_admin_orders_endpoint(
         user_id: int | None = None,
         order_status: OrderStatusEnum | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
         db: AsyncSession = Depends(get_db),
         user=Depends(require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN))
 ):
     orders = await get_admin_orders(
         db=db,
         user_id=user_id,
-        order_status=order_status
+        order_status=order_status,
+        date_from=date_from,
+        date_to=date_to
     )
 
     return [OrderResponse.model_validate(order) for order in orders]

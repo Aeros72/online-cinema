@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 from fastapi import HTTPException, status
@@ -164,7 +165,9 @@ async def cancel_order(
 async def get_admin_orders(
         db: AsyncSession,
         user_id: int | None = None,
-        order_status: OrderStatusEnum | None = None
+        order_status: OrderStatusEnum | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None
 ) -> list[Order]:
     query = select(Order).options(selectinload(Order.items))
 
@@ -173,6 +176,12 @@ async def get_admin_orders(
 
     if order_status is not None:
         query = query.where(Order.status == order_status)
+
+    if date_from is not None:
+        query = query.where(Order.created_at >= date_from)
+
+    if date_to is not None:
+        query = query.where(Order.created_at <= date_to)
 
     query = query.order_by(Order.created_at.desc())
 
