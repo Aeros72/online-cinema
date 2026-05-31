@@ -34,5 +34,31 @@ services:
     volumes:
       - .:/app
 
+  celery_worker:
+    build: .
+    container_name: online_cinema_celery_worker
+    restart: always
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    command: celery -A src.tasks.celery_app.celery_app worker --loglevel=info
+    volumes:
+      - .:/app
+
+  celery_beat:
+    build: .
+    container_name: online_cinema_celery_beat
+    restart: always
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    command: celery -A src.tasks.celery_app.celery_app beat --loglevel=info
+    volumes:
+      - .:/app
+
 volumes:
   postgres_data:
