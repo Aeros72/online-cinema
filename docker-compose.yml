@@ -60,5 +60,13 @@ services:
     volumes:
       - .:/app
 
+  mailhog:
+    image: mailhog/mailhog
+    container_name: online_cinema_mailhog
+    restart: always
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   postgres_data:

@@ -14,6 +14,7 @@ from src.models.accounts import (
     UserProfile
 )
 from src.schemas.accounts import UserRegisterRequest, UserLoginRequest, UserProfileUpdateRequest
+from src.services.email import send_email
 from src.services.security import (
     create_access_token,
     create_refresh_token,
@@ -75,7 +76,20 @@ async def register_user(db: AsyncSession, data: UserRegisterRequest) -> User:
     await db.commit()
     await db.refresh(user)
 
-    print(f"Activation token: {activation_token.token}")
+    activation_link = (
+        f"http://127.0.0.1:8000/api/v1/accounts/activate"
+        f"?token={activation_token.token}"
+    )
+
+    await send_email(
+        to=user.email,
+        subject="Activate your Online Cinema account",
+        body=(
+            "Welcome to Online Cinema!\n\n"
+            f"Activate your account:\n{activation_link}\n\n"
+            "This link is valid for 24 hours."
+        ),
+    )
 
     return user
 
@@ -215,7 +229,20 @@ async def resend_activation_token(db: AsyncSession, email: str) -> None:
     db.add(new_token)
     await db.commit()
 
-    print(f"New activation token: {new_token.token}")
+    activation_link = (
+        f"http://127.0.0.1:8000/api/v1/accounts/activate"
+        f"?token={new_token.token}"
+    )
+
+    await send_email(
+        to=user.email,
+        subject="New activation link",
+        body=(
+            "Here is your new activation link:\n\n"
+            f"{activation_link}\n\n"
+            "This link is valid for 24 hours."
+        ),
+    )
 
 
 async def request_password_reset(db: AsyncSession, email: str) -> None:
@@ -242,7 +269,20 @@ async def request_password_reset(db: AsyncSession, email: str) -> None:
     db.add(token)
     await db.commit()
 
-    print(f"Password reset token: {token.token}")
+    reset_link = (
+        f"http://127.0.0.1:8000/reset-password"
+        f"?token={token.token}"
+    )
+
+    await send_email(
+        to=user.email,
+        subject="Reset your Online Cinema password",
+        body=(
+            "You requested a password reset.\n\n"
+            f"Reset your password using this link:\n{reset_link}\n\n"
+            "This link is valid for 1 hour."
+        ),
+    )
 
 
 async def confirm_password_reset(

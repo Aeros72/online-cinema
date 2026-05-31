@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str
     CELERY_RESULT_BACKEND: str
 
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    EMAIL_FROM: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"
