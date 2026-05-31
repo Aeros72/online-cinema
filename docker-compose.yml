@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:18
+    container_name: online_cinema_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  redis:
+    image: redis:7
+    container_name: online_cinema_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    container_name: online_cinema_web
+    restart: always
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+
+volumes:
+  postgres_data:
