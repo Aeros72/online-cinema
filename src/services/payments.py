@@ -7,9 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.models.accounts import User
 from src.models.orders import Order, OrderStatusEnum, OrderItem
 from src.models.payments import Payment, PaymentStatusEnum, PaymentItem
 from src.models.purchases import PurchasedMovie
+from src.services.email import send_email
 
 
 async def pay_order(
@@ -87,6 +89,19 @@ async def pay_order(
         select(Payment)
         .where(Payment.id == payment.id)
         .options(selectinload(Payment.items))
+    )
+
+    user = await db.get(User, user_id)
+
+    await send_email(
+        to=user.email,
+        subject="Payment successful",
+        body=(
+            f"Your payment #{payment.id} was successful.\n\n"
+            f"Amount: {payment.amount}\n"
+            f"Order ID: {order.id}\n\n"
+            "Thank you for using Online Cinema."
+        ),
     )
 
     return result.scalar_one()
