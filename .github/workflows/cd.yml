@@ -18,7 +18,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/online-cinema
-            git pull origin develop
+            git fetch origin develop
+            git reset --hard origin/develop
             docker compose up -d --build
             docker compose exec -T web alembic upgrade head
             docker compose ps
