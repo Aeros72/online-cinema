@@ -19,6 +19,16 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str | None = None
     EMAIL_FROM: str
 
+    MINIO_ROOT_USER: str
+    MINIO_ROOT_PASSWORD: str
+
+    S3_ENDPOINT_URL: str
+    S3_PUBLIC_ENDPOINT_URL: str
+    S3_ACCESS_KEY: str
+    S3_SECRET_KEY: str
+    S3_BUCKET_NAME: str
+    S3_REGION: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"

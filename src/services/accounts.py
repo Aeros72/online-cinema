@@ -1,6 +1,6 @@
 from datetime import timezone, datetime, timedelta
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ from src.services.security import (
     hash_password,
     verify_password, create_activation_token
 )
+from src.services.storage import upload_avatar
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
@@ -416,6 +417,23 @@ async def update_user_profile(
 
     for field, value in update_data.items():
         setattr(profile, field, value)
+
+    await db.commit()
+    await db.refresh(profile)
+
+    return profile
+
+
+async def update_user_avatar(
+    db: AsyncSession,
+    user_id: int,
+    file: UploadFile,
+) -> UserProfile:
+    profile = await get_or_create_user_profile(db=db, user_id=user_id)
+
+    avatar_url = await upload_avatar(file=file, user_id=user_id)
+
+    profile.avatar = avatar_url
 
     await db.commit()
     await db.refresh(profile)
