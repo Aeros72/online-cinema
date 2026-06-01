@@ -63,6 +63,9 @@ jobs:
       - name: Install Poetry
         run: pip install "poetry==2.2.1"
 
+      - name: Regenerate lock in CI
+        run: poetry lock
+
       - name: Install dependencies
         run: poetry install --no-interaction --no-ansi
 
