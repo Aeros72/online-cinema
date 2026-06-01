@@ -14,4 +14,4 @@ app.include_router(api_router)
 
 @app.get("/")
 def root():
-    return {"message": "Online Cinema API v1"}
+    return {"message": "Online Cinema API"}
