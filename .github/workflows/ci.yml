@@ -64,7 +64,7 @@ jobs:
         run: pip install "poetry==2.2.1"
 
       - name: Install dependencies
-        run: poetry install --no-interaction --no-ansiп
+        run: poetry install --no-interaction --no-ansi
 
       - name: Run migrations
         run: poetry run alembic upgrade head
