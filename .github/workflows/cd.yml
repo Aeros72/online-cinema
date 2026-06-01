@@ -20,6 +20,6 @@ jobs:
             cd ~/online-cinema
             git fetch origin develop
             git reset --hard origin/develop
-            docker compose up -d --build
+            docker compose up -d --build --remove-orphans
             docker compose exec -T web alembic upgrade head
             docker compose ps
