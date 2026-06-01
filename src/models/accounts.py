@@ -77,10 +77,12 @@ class User(Base):
         cascade="all, delete-orphan"
     )
     activation_token: Mapped["ActivationToken"] = relationship(
+        back_populates="user",
         uselist=False,
         cascade="all, delete-orphan"
     )
     password_reset_token: Mapped["PasswordResetToken"] = relationship(
+        back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",
     )
@@ -169,7 +171,9 @@ class ActivationToken(Base):
         nullable=False
     )
 
-    user: Mapped["User"] = relationship()
+    user: Mapped["User"] = relationship(
+        back_populates="activation_token"
+    )
 
 
 class PasswordResetToken(Base):
@@ -192,4 +196,6 @@ class PasswordResetToken(Base):
         nullable=False
     )
 
-    user: Mapped["User"] = relationship()
+    user: Mapped["User"] = relationship(
+        back_populates="password_reset_token"
+    )
