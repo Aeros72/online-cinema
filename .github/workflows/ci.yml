@@ -51,6 +51,9 @@ jobs:
       S3_BUCKET_NAME: online-cinema-test
       S3_REGION: us-east-1
 
+      STRIPE_SECRET_KEY: sk_test_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_dummy
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
