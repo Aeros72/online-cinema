@@ -9,6 +9,7 @@ from src.db.base import Base
 
 
 class PaymentStatusEnum(str, enum.Enum):
+    PENDING = "pending"
     SUCCESSFUL = "successful"
     CANCELED = "canceled"
     REFUNDED = "refunded"

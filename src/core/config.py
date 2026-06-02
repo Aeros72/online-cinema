@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str
     S3_REGION: str
 
+    STRIPE_SECRET_KEY: str
+    STRIPE_WEBHOOK_SECRET: str
+
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
         extra="ignore",
