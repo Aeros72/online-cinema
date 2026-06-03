@@ -285,14 +285,20 @@ async def remove_movie_from_favorites(
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
 
     result = await db.execute(
-        favorite_movies.delete().where(
-            favorite_movies.c.user_id == user_id, favorite_movies.c.movie_id == movie.id
+        favorite_movies.delete()
+        .where(
+            favorite_movies.c.user_id == user_id,
+            favorite_movies.c.movie_id == movie.id,
         )
+        .returning(favorite_movies.c.movie_id)
     )
 
-    if result.rowcount == 0:
+    deleted_movie_id = result.scalar_one_or_none()
+
+    if deleted_movie_id is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Movie is not in favorites."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie is not in favorites.",
         )
 
     await db.commit()

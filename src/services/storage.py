@@ -47,7 +47,8 @@ def ensure_bucket_exists() -> None:
 async def upload_avatar(file: UploadFile, user_id: int) -> str:
     ensure_bucket_exists()
 
-    file_extension = file.filename.split(".")[-1]
+    filename = file.filename or "avatar.jpg"
+    file_extension = filename.rsplit(".", 1)[-1]
     object_key = f"avatars/user_{user_id}/{uuid4()}.{file_extension}"
 
     s3 = get_s3_client()

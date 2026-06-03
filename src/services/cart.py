@@ -100,15 +100,15 @@ async def add_movie_to_cart(
 
     db.expire_all()
 
-    cart = await get_cart_with_items(db=db, user_id=user_id)
+    updated_cart = await get_cart_with_items(db=db, user_id=user_id)
 
-    if cart is None:
+    if updated_cart is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Cart not found.",
         )
 
-    return cart
+    return updated_cart
 
 
 async def remove_movie_from_cart(

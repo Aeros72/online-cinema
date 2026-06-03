@@ -80,6 +80,9 @@ jobs:
       - name: Check formatting
         run: poetry run ruff format --check .
 
+      - name: Run MyPy
+        run: poetry run mypy src
+
       - name: Run migrations
         run: poetry run alembic upgrade head
 

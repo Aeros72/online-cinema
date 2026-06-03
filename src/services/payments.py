@@ -78,13 +78,21 @@ async def pay_order(db: AsyncSession, user_id: int, order_id: int) -> Payment:
 
     await db.commit()
 
-    result = await db.execute(
+    payment_result = await db.execute(
         select(Payment)
         .where(Payment.id == payment.id)
         .options(selectinload(Payment.items))
     )
 
+    created_payment = payment_result.scalar_one()
+
     user = await db.get(User, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
 
     await send_email(
         to=user.email,
@@ -97,7 +105,7 @@ async def pay_order(db: AsyncSession, user_id: int, order_id: int) -> Payment:
         ),
     )
 
-    return result.scalar_one()
+    return created_payment
 
 
 async def get_user_payments(db: AsyncSession, user_id: int) -> list[Payment]:
@@ -234,12 +242,12 @@ async def complete_stripe_payment(
     db: AsyncSession,
     stripe_session_id: str,
 ) -> Payment:
-    result = await db.execute(
+    payment_result = await db.execute(
         select(Payment)
         .where(Payment.external_payment_id == stripe_session_id)
         .options(selectinload(Payment.items))
     )
-    payment = result.scalar_one_or_none()
+    payment = payment_result.scalar_one_or_none()
 
     if payment is None:
         raise HTTPException(
@@ -256,14 +264,15 @@ async def complete_stripe_payment(
             detail="Only pending payments can be completed.",
         )
 
-    result = await db.execute(
+    order_result = await db.execute(
         select(Order)
         .where(Order.id == payment.order_id)
         .options(selectinload(Order.items).selectinload(OrderItem.movie))
     )
-    order = result.scalar_one()
+    order = order_result.scalar_one()
+    order_items = list(order.items)
 
-    for order_item in order.items:
+    for order_item in order_items:
         db.add(
             PaymentItem(
                 payment_id=payment.id,
@@ -286,6 +295,12 @@ async def complete_stripe_payment(
     await db.refresh(payment)
 
     user = await db.get(User, payment.user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
 
     await send_email(
         to=user.email,

@@ -187,6 +187,13 @@ async def activate_user(db: AsyncSession, token: str) -> None:
         )
 
     user = await db.get(User, db_token.user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
     user.is_active = True
 
     await db.delete(db_token)
@@ -298,6 +305,12 @@ async def confirm_password_reset(
         )
 
     user = await db.get(User, db_token.user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
 
     user.hashed_password = hash_password(new_password)
 

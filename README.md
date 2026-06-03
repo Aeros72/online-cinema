@@ -48,7 +48,8 @@ The project provides a complete movie platform ecosystem including authenticatio
 * **Dependency Management:** Poetry
 * **Containerization:** Docker & Docker Compose
 * **Testing:** Pytest
-* **Code Quality:** Ruff
+* **Code Quality:** Ruff, MyPy
+* **Coverage Reports:** Pytest-Cov
 * **Documentation:** OpenAPI (Swagger)
 * **CI/CD:** GitHub Actions
 * **Deployment:** AWS EC2
@@ -180,6 +181,12 @@ Run all tests:
 poetry run pytest
 ```
 
+Generate coverage report:
+
+```bash
+poetry run pytest --cov=src --cov-report=term-missing
+```
+
 ---
 
 ## Code Quality
@@ -200,6 +207,12 @@ Format the codebase:
 
 ```bash
 poetry run ruff format .
+```
+
+Run type checking:
+
+```bash
+poetry run mypy src
 ```
 
 ---
@@ -246,8 +259,10 @@ GitHub Actions pipeline automatically performs:
 - Dependency installation
 - Ruff lint checks
 - Ruff formatting checks
-- Database migrations
+- MyPy type checking
+- Alembic migrations
 - Automated tests
+- Coverage reporting
 - Deployment to AWS EC2
 
 Deployment flow:
