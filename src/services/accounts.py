@@ -3,6 +3,7 @@ from datetime import timezone, datetime, timedelta
 from fastapi import HTTPException, status, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.core.config import settings
 
 from src.models.accounts import (
     User,
@@ -78,7 +79,7 @@ async def register_user(db: AsyncSession, data: UserRegisterRequest) -> User:
     await db.refresh(user)
 
     activation_link = (
-        f"http://127.0.0.1:8000/api/v1/accounts/activate"
+        f"{settings.BACKEND_URL}/api/v1/accounts/activate"
         f"?token={activation_token.token}"
     )
 
@@ -231,7 +232,7 @@ async def resend_activation_token(db: AsyncSession, email: str) -> None:
     await db.commit()
 
     activation_link = (
-        f"http://127.0.0.1:8000/api/v1/accounts/activate"
+        f"{settings.BACKEND_URL}/api/v1/accounts/activate"
         f"?token={new_token.token}"
     )
 
@@ -271,7 +272,7 @@ async def request_password_reset(db: AsyncSession, email: str) -> None:
     await db.commit()
 
     reset_link = (
-        f"http://127.0.0.1:8000/reset-password"
+        f"{settings.BACKEND_URL}/reset-password"
         f"?token={token.token}"
     )
 

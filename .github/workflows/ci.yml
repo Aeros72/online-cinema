@@ -54,6 +54,8 @@ jobs:
       STRIPE_SECRET_KEY: sk_test_dummy
       STRIPE_WEBHOOK_SECRET: whsec_dummy
 
+      BACKEND_URL: http://test
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
