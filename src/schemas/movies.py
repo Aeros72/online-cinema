@@ -13,9 +13,7 @@ class GenreResponse(BaseModel):
     id: int
     name: str
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class StarCreate(BaseModel):
@@ -26,9 +24,7 @@ class StarResponse(BaseModel):
     id: int
     name: str
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class DirectorCreate(BaseModel):
@@ -90,9 +86,7 @@ class MovieResponse(BaseModel):
     price: Decimal
     certification_id: int
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class RatingCreate(BaseModel):
@@ -105,9 +99,7 @@ class RatingResponse(BaseModel):
     movie_id: int
     value: int
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class CommentCreate(BaseModel):
@@ -121,9 +113,7 @@ class CommentResponse(BaseModel):
     text: str
     created_at: datetime
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class CommentReplyCreate(BaseModel):

@@ -74,6 +74,12 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-ansi
 
+      - name: Run Ruff
+        run: poetry run ruff check .
+
+      - name: Check formatting
+        run: poetry run ruff format --check .
+
       - name: Run migrations
         run: poetry run alembic upgrade head
 

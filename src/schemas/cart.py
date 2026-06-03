@@ -15,9 +15,7 @@ class CartMovieResponse(BaseModel):
     price: Decimal
     genres: list[GenreResponse]
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class CartItemResponse(BaseModel):
@@ -25,9 +23,7 @@ class CartItemResponse(BaseModel):
     added_at: datetime
     movie: CartMovieResponse
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class CartResponse(BaseModel):
@@ -35,6 +31,4 @@ class CartResponse(BaseModel):
     user_id: int
     items: list[CartItemResponse]
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}

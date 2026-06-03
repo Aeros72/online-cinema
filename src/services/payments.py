@@ -8,43 +8,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.models.accounts import User
-from src.models.orders import Order, OrderStatusEnum, OrderItem
-from src.models.payments import Payment, PaymentStatusEnum, PaymentItem
+from src.models.orders import Order, OrderItem, OrderStatusEnum
+from src.models.payments import Payment, PaymentItem, PaymentStatusEnum
 from src.models.purchases import PurchasedMovie
 from src.services.email import send_email
 from src.services.stripe_service import create_checkout_session
 
 
-async def pay_order(
-        db: AsyncSession,
-        user_id: int,
-        order_id: int
-) -> Payment:
+async def pay_order(db: AsyncSession, user_id: int, order_id: int) -> Payment:
     result = await db.execute(
         select(Order)
         .where(Order.id == order_id)
-        .options(
-            selectinload(Order.items).selectinload(OrderItem.movie)
-        )
+        .options(selectinload(Order.items).selectinload(OrderItem.movie))
     )
     order = result.scalar_one_or_none()
 
     if order is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Order not found."
         )
 
     if order.user_id != user_id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not your order."
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not your order."
         )
 
     if order.status != OrderStatusEnum.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only pending orders can be paid."
+            detail="Only pending orders can be paid.",
         )
 
     actual_total_amount = sum(
@@ -108,10 +100,7 @@ async def pay_order(
     return result.scalar_one()
 
 
-async def get_user_payments(
-        db: AsyncSession,
-        user_id: int
-) -> list[Payment]:
+async def get_user_payments(db: AsyncSession, user_id: int) -> list[Payment]:
     result = await db.execute(
         select(Payment)
         .where(Payment.user_id == user_id)
@@ -123,11 +112,11 @@ async def get_user_payments(
 
 
 async def get_admin_payments(
-        db: AsyncSession,
-        user_id: int | None = None,
-        payment_status: PaymentStatusEnum | None = None,
-        date_from: datetime | None = None,
-        date_to: datetime | None = None
+    db: AsyncSession,
+    user_id: int | None = None,
+    payment_status: PaymentStatusEnum | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
 ) -> list[Payment]:
     query = select(Payment).options(selectinload(Payment.items))
 
@@ -149,33 +138,28 @@ async def get_admin_payments(
     return list(result.scalars().all())
 
 
-async def refund_payment(
-        db: AsyncSession,
-        user_id: int,
-        payment_id: int
-) -> Payment:
+async def refund_payment(db: AsyncSession, user_id: int, payment_id: int) -> Payment:
     result = await db.execute(
-        select(Payment).where(Payment.id == payment_id)
+        select(Payment)
+        .where(Payment.id == payment_id)
         .options(selectinload(Payment.items))
     )
     payment = result.scalar_one_or_none()
 
     if payment is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Payment not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found."
         )
 
     if payment.user_id != user_id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not your payment."
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not your payment."
         )
 
     if payment.status != PaymentStatusEnum.SUCCESSFUL:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only successful payments can be refunded."
+            detail="Only successful payments can be refunded.",
         )
 
     payment.status = PaymentStatusEnum.REFUNDED
@@ -194,9 +178,7 @@ async def create_order_checkout_session(
     result = await db.execute(
         select(Order)
         .where(Order.id == order_id)
-        .options(
-            selectinload(Order.items).selectinload(OrderItem.movie)
-        )
+        .options(selectinload(Order.items).selectinload(OrderItem.movie))
     )
     order = result.scalar_one_or_none()
 
@@ -277,9 +259,7 @@ async def complete_stripe_payment(
     result = await db.execute(
         select(Order)
         .where(Order.id == payment.order_id)
-        .options(
-            selectinload(Order.items).selectinload(OrderItem.movie)
-        )
+        .options(selectinload(Order.items).selectinload(OrderItem.movie))
     )
     order = result.scalar_one()
 
@@ -319,4 +299,3 @@ async def complete_stripe_payment(
     )
 
     return payment
-

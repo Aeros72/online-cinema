@@ -1,25 +1,25 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, asc, desc, or_, func
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.accounts import User, UserGroup, UserGroupEnum
+from src.models.cart import CartItem
 from src.models.movies import (
-    Genre,
-    Star,
-    Director,
     Certification,
-    Movie,
-    favorite_movies,
-    Rating,
     Comment,
+    CommentLike,
+    CommentReply,
+    Director,
+    Genre,
+    Movie,
     MovieReaction,
     MovieReactionEnum,
-    CommentLike,
-    CommentReply
+    Rating,
+    Star,
+    favorite_movies,
 )
-from src.models.cart import CartItem
 from src.models.notifications import NotificationTypeEnum
 from src.models.orders import OrderItem
 from src.schemas.movies import MovieCreate, MovieUpdate
@@ -32,8 +32,7 @@ async def create_genre(db: AsyncSession, name: str) -> Genre:
 
     if existing:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Genre already exists."
+            status_code=status.HTTP_409_CONFLICT, detail="Genre already exists."
         )
 
     genre = Genre(name=name)
@@ -56,8 +55,7 @@ async def create_star(db: AsyncSession, name: str) -> Star:
 
     if existing:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Star already exists."
+            status_code=status.HTTP_409_CONFLICT, detail="Star already exists."
         )
 
     star = Star(name=name)
@@ -80,8 +78,7 @@ async def create_director(db: AsyncSession, name: str) -> Director:
 
     if existing:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Director already exists."
+            status_code=status.HTTP_409_CONFLICT, detail="Director already exists."
         )
 
     director = Director(name=name)
@@ -104,8 +101,7 @@ async def create_certification(db: AsyncSession, name: str) -> Certification:
 
     if existing:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Certification already exists."
+            status_code=status.HTTP_409_CONFLICT, detail="Certification already exists."
         )
 
     certification = Certification(name=name)
@@ -127,8 +123,7 @@ async def create_movie(db: AsyncSession, data: MovieCreate) -> Movie:
 
     if certification is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Certification not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Certification not found."
         )
 
     genres_result = await db.execute(select(Genre).where(Genre.id.in_(data.genre_ids)))
@@ -137,7 +132,7 @@ async def create_movie(db: AsyncSession, data: MovieCreate) -> Movie:
     if len(genres) != len(set(data.genre_ids)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="One or more genres not found."
+            detail="One or more genres not found.",
         )
 
     stars_result = await db.execute(select(Star).where(Star.id.in_(data.star_ids)))
@@ -173,7 +168,7 @@ async def create_movie(db: AsyncSession, data: MovieCreate) -> Movie:
         certification_id=data.certification_id,
         genres=genres,
         stars=stars,
-        directors=directors
+        directors=directors,
     )
 
     db.add(movie)
@@ -184,22 +179,21 @@ async def create_movie(db: AsyncSession, data: MovieCreate) -> Movie:
 
 
 async def get_movies(
-        db: AsyncSession,
-        page: int = 1,
-        size: int = 10,
-        search: str | None = None,
-        year: int | None = None,
-        min_imdb: float | None = None,
-        genre_id: int | None = None,
-        sort_by: str = "id",
-        sort_order: str = "asc",
+    db: AsyncSession,
+    page: int = 1,
+    size: int = 10,
+    search: str | None = None,
+    year: int | None = None,
+    min_imdb: float | None = None,
+    genre_id: int | None = None,
+    sort_by: str = "id",
+    sort_order: str = "asc",
 ) -> list[Movie]:
     query = select(Movie)
 
     if search:
         query = (
-            query
-            .outerjoin(Movie.stars)
+            query.outerjoin(Movie.stars)
             .outerjoin(Movie.directors)
             .where(
                 or_(
@@ -225,15 +219,14 @@ async def get_movies(
         "price": Movie.price,
         "year": Movie.year,
         "imdb": Movie.imdb,
-        "votes": Movie.votes
+        "votes": Movie.votes,
     }
 
     sort_column = allowed_sort_fields.get(sort_by)
 
     if sort_column is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid sort field."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid sort field."
         )
 
     if sort_order == "desc":
@@ -249,47 +242,37 @@ async def get_movies(
 
 
 async def get_movie_by_uuid(db: AsyncSession, movie_uuid: UUID) -> Movie:
-    result = await db.execute(
-        select(Movie).where(Movie.uuid == movie_uuid)
-    )
+    result = await db.execute(select(Movie).where(Movie.uuid == movie_uuid))
 
     movie = result.scalar_one_or_none()
 
     if movie is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Movie not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found."
         )
 
     return movie
 
 
 async def add_movie_to_favorites(
-        db: AsyncSession,
-        user_id: int,
-        movie_uuid: UUID
+    db: AsyncSession, user_id: int, movie_uuid: UUID
 ) -> Movie:
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
 
     result = await db.execute(
         select(favorite_movies).where(
-            favorite_movies.c.user_id == user_id,
-            favorite_movies.c.movie_id == movie.id
+            favorite_movies.c.user_id == user_id, favorite_movies.c.movie_id == movie.id
         )
     )
     existing = result.first()
 
     if existing is not None:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Movie already in favorites."
+            status_code=status.HTTP_409_CONFLICT, detail="Movie already in favorites."
         )
 
     await db.execute(
-        favorite_movies.insert().values(
-            user_id=user_id,
-            movie_id=movie.id
-        )
+        favorite_movies.insert().values(user_id=user_id, movie_id=movie.id)
     )
 
     await db.commit()
@@ -297,23 +280,19 @@ async def add_movie_to_favorites(
 
 
 async def remove_movie_from_favorites(
-        db: AsyncSession,
-        user_id: int,
-        movie_uuid: UUID
+    db: AsyncSession, user_id: int, movie_uuid: UUID
 ) -> None:
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
 
     result = await db.execute(
         favorite_movies.delete().where(
-            favorite_movies.c.user_id == user_id,
-            favorite_movies.c.movie_id == movie.id
+            favorite_movies.c.user_id == user_id, favorite_movies.c.movie_id == movie.id
         )
     )
 
     if result.rowcount == 0:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Movie is not in favorites."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Movie is not in favorites."
         )
 
     await db.commit()
@@ -339,8 +318,7 @@ async def get_favorite_movies(
 
     if search:
         query = (
-            query
-            .outerjoin(Movie.stars)
+            query.outerjoin(Movie.stars)
             .outerjoin(Movie.directors)
             .where(
                 or_(
@@ -390,18 +368,12 @@ async def get_favorite_movies(
 
 
 async def rate_movie(
-        db: AsyncSession,
-        user_id: int,
-        movie_uuid: UUID,
-        value: int
+    db: AsyncSession, user_id: int, movie_uuid: UUID, value: int
 ) -> Rating:
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
 
     result = await db.execute(
-        select(Rating).where(
-            Rating.user_id == user_id,
-            Rating.movie_id == movie.id
-        )
+        select(Rating).where(Rating.user_id == user_id, Rating.movie_id == movie.id)
     )
     existing = result.scalar_one_or_none()
 
@@ -411,11 +383,7 @@ async def rate_movie(
         await db.refresh(existing)
         return existing
 
-    rating = Rating(
-        user_id=user_id,
-        movie_id=movie.id,
-        value=value
-    )
+    rating = Rating(user_id=user_id, movie_id=movie.id, value=value)
 
     db.add(rating)
     await db.commit()
@@ -424,25 +392,17 @@ async def rate_movie(
     return rating
 
 
-async def delete_rating(
-        db: AsyncSession,
-        user_id: int,
-        movie_uuid: UUID
-) -> None:
+async def delete_rating(db: AsyncSession, user_id: int, movie_uuid: UUID) -> None:
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
 
     result = await db.execute(
-        select(Rating).where(
-            Rating.user_id == user_id,
-            Rating.movie_id == movie.id
-        )
+        select(Rating).where(Rating.user_id == user_id, Rating.movie_id == movie.id)
     )
     rating = result.scalar_one_or_none()
 
     if rating is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Rating not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Rating not found."
         )
 
     await db.delete(rating)
@@ -450,37 +410,28 @@ async def delete_rating(
 
 
 async def get_movie_rating_stats(
-        db: AsyncSession,
-        movie_id: int
+    db: AsyncSession, movie_id: int
 ) -> tuple[float | None, int]:
     result = await db.execute(
-        select(
-            func.avg(Rating.value),
-            func.count(Rating.id)
-        ).where(Rating.movie_id == movie_id)
+        select(func.avg(Rating.value), func.count(Rating.id)).where(
+            Rating.movie_id == movie_id
+        )
     )
 
     average_rating, ratings_count = result.one()
 
     return (
         round(float(average_rating), 2) if average_rating is not None else None,
-        ratings_count
+        ratings_count,
     )
 
 
 async def create_comment(
-        db: AsyncSession,
-        user_id: int,
-        movie_uuid: UUID,
-        text: str
+    db: AsyncSession, user_id: int, movie_uuid: UUID, text: str
 ) -> Comment:
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
 
-    comment = Comment(
-        user_id=user_id,
-        movie_id=movie.id,
-        text=text
-    )
+    comment = Comment(user_id=user_id, movie_id=movie.id, text=text)
 
     db.add(comment)
     await db.commit()
@@ -489,10 +440,7 @@ async def create_comment(
     return comment
 
 
-async def get_movie_comments(
-        db: AsyncSession,
-        movie_uuid: UUID
-) -> list[Comment]:
+async def get_movie_comments(db: AsyncSession, movie_uuid: UUID) -> list[Comment]:
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
 
     result = await db.execute(
@@ -504,23 +452,18 @@ async def get_movie_comments(
     return list(result.scalars().all())
 
 
-async def delete_comment(
-        db: AsyncSession,
-        user_id: int,
-        comment_id: int
-) -> None:
+async def delete_comment(db: AsyncSession, user_id: int, comment_id: int) -> None:
     comment = await db.get(Comment, comment_id)
 
     if comment is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Comment not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found."
         )
 
     if comment.user_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can delete only your own comments."
+            detail="You can delete only your own comments.",
         )
 
     await db.delete(comment)
@@ -528,17 +471,13 @@ async def delete_comment(
 
 
 async def react_to_movie(
-        db: AsyncSession,
-        user_id: int,
-        movie_uuid: UUID,
-        reaction: MovieReactionEnum
+    db: AsyncSession, user_id: int, movie_uuid: UUID, reaction: MovieReactionEnum
 ) -> MovieReaction:
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
 
     result = await db.execute(
         select(MovieReaction).where(
-            MovieReaction.user_id == user_id,
-            MovieReaction.movie_id == movie.id
+            MovieReaction.user_id == user_id, MovieReaction.movie_id == movie.id
         )
     )
     existing = result.scalar_one_or_none()
@@ -549,11 +488,7 @@ async def react_to_movie(
         await db.refresh(existing)
         return existing
 
-    new_reaction = MovieReaction(
-        user_id=user_id,
-        movie_id=movie.id,
-        reaction=reaction
-    )
+    new_reaction = MovieReaction(user_id=user_id, movie_id=movie.id, reaction=reaction)
 
     db.add(new_reaction)
     await db.commit()
@@ -563,9 +498,7 @@ async def react_to_movie(
 
 
 async def delete_movie_reaction(
-        db: AsyncSession,
-        user_id: int,
-        movie_uuid: UUID
+    db: AsyncSession, user_id: int, movie_uuid: UUID
 ) -> None:
     movie = await get_movie_by_uuid(db=db, movie_uuid=movie_uuid)
 
@@ -792,11 +725,7 @@ async def delete_movie(
         moderators_result = await db.execute(
             select(User)
             .join(User.group)
-            .where(
-                UserGroup.name.in_(
-                    [UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN]
-                )
-            )
+            .where(UserGroup.name.in_([UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN]))
         )
         moderators = list(moderators_result.scalars().all())
 
@@ -805,22 +734,17 @@ async def delete_movie(
                 db=db,
                 user_id=moderator.id,
                 type_=NotificationTypeEnum.MOVIE_IN_CART_DELETE_ATTEMPT,
-                message=f'Movie "{movie.name}" existed in users carts during delete attempt.',
+                message=f'Movie "{movie.name}" existed in '
+                f"users carts during delete attempt.",
             )
 
     await db.delete(movie)
     await db.commit()
 
 
-async def get_genres_with_movie_counts(
-        db: AsyncSession
-) -> list[dict]:
+async def get_genres_with_movie_counts(db: AsyncSession) -> list[dict]:
     result = await db.execute(
-        select(
-            Genre.id,
-            Genre.name,
-            func.count(Movie.id).label("movies_count")
-        )
+        select(Genre.id, Genre.name, func.count(Movie.id).label("movies_count"))
         .outerjoin(Genre.movies)
         .group_by(Genre.id)
         .order_by(Genre.name)
@@ -866,9 +790,7 @@ async def delete_genre(db: AsyncSession, genre_id: int) -> None:
         raise HTTPException(status_code=404, detail="Genre not found.")
 
     result = await db.execute(
-        select(Movie)
-        .join(Movie.genres)
-        .where(Genre.id == genre_id)
+        select(Movie).join(Movie.genres).where(Genre.id == genre_id)
     )
     movie = result.scalar_one_or_none()
 
@@ -909,11 +831,7 @@ async def delete_star(db: AsyncSession, star_id: int) -> None:
     if star is None:
         raise HTTPException(status_code=404, detail="Star not found.")
 
-    result = await db.execute(
-        select(Movie)
-        .join(Movie.stars)
-        .where(Star.id == star_id)
-    )
+    result = await db.execute(select(Movie).join(Movie.stars).where(Star.id == star_id))
     movie = result.scalar_one_or_none()
 
     if movie is not None:
@@ -954,9 +872,7 @@ async def delete_director(db: AsyncSession, director_id: int) -> None:
         raise HTTPException(status_code=404, detail="Director not found.")
 
     result = await db.execute(
-        select(Movie)
-        .join(Movie.directors)
-        .where(Director.id == director_id)
+        select(Movie).join(Movie.directors).where(Director.id == director_id)
     )
     movie = result.scalar_one_or_none()
 

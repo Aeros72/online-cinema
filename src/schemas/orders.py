@@ -11,9 +11,7 @@ class OrderItemResponse(BaseModel):
     movie_id: int
     price_at_order: Decimal
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class OrderResponse(BaseModel):
@@ -24,6 +22,4 @@ class OrderResponse(BaseModel):
     total_amount: Decimal
     items: list[OrderItemResponse]
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}

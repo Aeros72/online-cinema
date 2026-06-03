@@ -1,5 +1,6 @@
-import pytest
 import uuid
+
+import pytest
 
 from tests.helpers import auth_headers, register_activate_login_admin
 

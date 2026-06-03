@@ -3,7 +3,7 @@ from datetime import date
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from src.models.accounts import UserGroupEnum, GenderEnum
+from src.models.accounts import GenderEnum, UserGroupEnum
 
 
 class UserRegisterRequest(BaseModel):
@@ -31,9 +31,7 @@ class UserResponse(BaseModel):
     is_active: bool
     group_id: int
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class UserLoginRequest(BaseModel):
@@ -107,9 +105,7 @@ class UserProfileResponse(BaseModel):
     date_of_birth: date | None
     info: str | None
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class UserProfileUpdateRequest(BaseModel):

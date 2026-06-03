@@ -1,27 +1,32 @@
-from datetime import timezone, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from fastapi import HTTPException, status, UploadFile
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.config import settings
 
+from src.core.config import settings
 from src.models.accounts import (
+    ActivationToken,
+    PasswordResetToken,
+    RefreshToken,
     User,
     UserGroup,
     UserGroupEnum,
-    RefreshToken,
-    ActivationToken,
-    PasswordResetToken,
-    UserProfile
+    UserProfile,
 )
-from src.schemas.accounts import UserRegisterRequest, UserLoginRequest, UserProfileUpdateRequest
+from src.schemas.accounts import (
+    UserLoginRequest,
+    UserProfileUpdateRequest,
+    UserRegisterRequest,
+)
 from src.services.email import send_email
 from src.services.security import (
     create_access_token,
+    create_activation_token,
     create_refresh_token,
     get_refresh_token_expires_at,
     hash_password,
-    verify_password, create_activation_token
+    verify_password,
 )
 from src.services.storage import upload_avatar
 
@@ -40,7 +45,7 @@ async def get_default_user_group(db: AsyncSession) -> UserGroup:
     if group is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Default user group does not exist."
+            detail="Default user group does not exist.",
         )
 
     return group
@@ -52,7 +57,7 @@ async def register_user(db: AsyncSession, data: UserRegisterRequest) -> User:
     if existing_user is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="User with this email already exists."
+            detail="User with this email already exists.",
         )
 
     user_group = await get_default_user_group(db=db)
@@ -61,7 +66,7 @@ async def register_user(db: AsyncSession, data: UserRegisterRequest) -> User:
         email=data.email,
         hashed_password=hash_password(data.password),
         is_active=False,
-        group_id=user_group.id
+        group_id=user_group.id,
     )
 
     db.add(user)
@@ -71,7 +76,7 @@ async def register_user(db: AsyncSession, data: UserRegisterRequest) -> User:
     activation_token = ActivationToken(
         user_id=user.id,
         token=create_activation_token(),
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
     )
 
     db.add(activation_token)
@@ -102,31 +107,25 @@ async def login_user(db: AsyncSession, data: UserLoginRequest) -> dict[str, str]
     if user is None or not verify_password(data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password."
+            detail="Invalid email or password.",
         )
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is not active."
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active."
         )
 
     access_token = create_access_token(user_id=user.id)
     refresh_token = create_refresh_token()
 
     db_refresh_token = RefreshToken(
-        user_id=user.id,
-        token=refresh_token,
-        expires_at=get_refresh_token_expires_at()
+        user_id=user.id, token=refresh_token, expires_at=get_refresh_token_expires_at()
     )
 
     db.add(db_refresh_token)
     await db.commit()
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token
-    }
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
 
 async def refresh_access_token(db: AsyncSession, refresh_token: str) -> dict[str, str]:
@@ -137,8 +136,7 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str) -> dict[str
 
     if db_refresh_token is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token."
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token."
         )
 
     if db_refresh_token.expires_at < datetime.now(timezone.utc):
@@ -147,7 +145,7 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str) -> dict[str
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token has expired."
+            detail="Refresh token has expired.",
         )
 
     access_token = create_access_token(user_id=db_refresh_token.user_id)
@@ -163,8 +161,7 @@ async def logout_user(db: AsyncSession, refresh_token: str) -> None:
 
     if db_refresh_token is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token."
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token."
         )
 
     await db.delete(db_refresh_token)
@@ -179,16 +176,14 @@ async def activate_user(db: AsyncSession, token: str) -> None:
 
     if db_token is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid activation token."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid activation token."
         )
 
     if db_token.expires_at < datetime.now(timezone.utc):
         await db.delete(db_token)
         await db.commit()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Activation token expired."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Activation token expired."
         )
 
     user = await db.get(User, db_token.user_id)
@@ -203,14 +198,12 @@ async def resend_activation_token(db: AsyncSession, email: str) -> None:
 
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
         )
 
     if user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Account is already active."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Account is already active."
         )
 
     result = await db.execute(
@@ -225,15 +218,14 @@ async def resend_activation_token(db: AsyncSession, email: str) -> None:
     new_token = ActivationToken(
         user_id=user.id,
         token=create_activation_token(),
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
     )
 
     db.add(new_token)
     await db.commit()
 
     activation_link = (
-        f"{settings.BACKEND_URL}/api/v1/accounts/activate"
-        f"?token={new_token.token}"
+        f"{settings.BACKEND_URL}/api/v1/accounts/activate?token={new_token.token}"
     )
 
     await send_email(
@@ -265,16 +257,13 @@ async def request_password_reset(db: AsyncSession, email: str) -> None:
     token = PasswordResetToken(
         user_id=user.id,
         token=create_activation_token(),
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
     )
 
     db.add(token)
     await db.commit()
 
-    reset_link = (
-        f"{settings.BACKEND_URL}/reset-password"
-        f"?token={token.token}"
-    )
+    reset_link = f"{settings.BACKEND_URL}/reset-password?token={token.token}"
 
     await send_email(
         to=user.email,
@@ -288,9 +277,7 @@ async def request_password_reset(db: AsyncSession, email: str) -> None:
 
 
 async def confirm_password_reset(
-        db: AsyncSession,
-        token: str,
-        new_password: str
+    db: AsyncSession, token: str, new_password: str
 ) -> None:
     result = await db.execute(
         select(PasswordResetToken).where(PasswordResetToken.token == token)
@@ -299,8 +286,7 @@ async def confirm_password_reset(
 
     if db_token is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid token."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token."
         )
 
     if db_token.expires_at < datetime.now(timezone.utc):
@@ -308,8 +294,7 @@ async def confirm_password_reset(
         await db.commit()
 
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token expired."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Token expired."
         )
 
     user = await db.get(User, db_token.user_id)
@@ -320,16 +305,12 @@ async def confirm_password_reset(
     await db.commit()
 
 
-async def activate_user_manually(
-        db: AsyncSession,
-        user_id: int
-) -> User:
+async def activate_user_manually(db: AsyncSession, user_id: int) -> User:
     user = await db.get(User, user_id)
 
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
         )
 
     user.is_active = True
@@ -340,16 +321,13 @@ async def activate_user_manually(
 
 
 async def change_user_group(
-        db: AsyncSession,
-        user_id: int,
-        group: UserGroupEnum
+    db: AsyncSession, user_id: int, group: UserGroupEnum
 ) -> User:
     user = await db.get(User, user_id)
 
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
         )
 
     result = await db.execute(select(UserGroup).where(UserGroup.name == group))
@@ -357,8 +335,7 @@ async def change_user_group(
 
     if user_group is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Group not found."
         )
 
     user.group_id = user_group.id
@@ -370,15 +347,11 @@ async def change_user_group(
 
 
 async def change_password(
-        db: AsyncSession,
-        user: User,
-        old_password: str,
-        new_password: str
+    db: AsyncSession, user: User, old_password: str, new_password: str
 ) -> None:
     if not verify_password(old_password, user.hashed_password):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Old password is incorrect."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Old password is incorrect."
         )
 
     user.hashed_password = hash_password(new_password)
@@ -386,13 +359,8 @@ async def change_password(
     await db.commit()
 
 
-async def get_or_create_user_profile(
-        db: AsyncSession,
-        user_id: int
-) -> UserProfile:
-    result = await db.execute(
-        select(UserProfile).where(UserProfile.user_id == user_id)
-    )
+async def get_or_create_user_profile(db: AsyncSession, user_id: int) -> UserProfile:
+    result = await db.execute(select(UserProfile).where(UserProfile.user_id == user_id))
     profile = result.scalar_one_or_none()
 
     if profile is not None:
@@ -408,9 +376,7 @@ async def get_or_create_user_profile(
 
 
 async def update_user_profile(
-        db: AsyncSession,
-        user_id: int,
-        data: UserProfileUpdateRequest
+    db: AsyncSession, user_id: int, data: UserProfileUpdateRequest
 ) -> UserProfile:
     profile = await get_or_create_user_profile(db=db, user_id=user_id)
 

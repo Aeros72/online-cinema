@@ -5,10 +5,7 @@ from sqlalchemy.orm import selectinload
 from src.models.purchases import PurchasedMovie
 
 
-async def get_purchased_movies(
-        db: AsyncSession,
-        user_id: int
-) -> list[PurchasedMovie]:
+async def get_purchased_movies(db: AsyncSession, user_id: int) -> list[PurchasedMovie]:
     result = await db.execute(
         select(PurchasedMovie)
         .where(PurchasedMovie.user_id == user_id)

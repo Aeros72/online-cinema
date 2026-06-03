@@ -1,13 +1,13 @@
 from fastapi import APIRouter
 
 from src.api.routes.accounts import router as accounts_router
-from src.api.routes.movies import router as movies_router
 from src.api.routes.cart import router as cart_router
+from src.api.routes.docs import router as docs_router
+from src.api.routes.movies import router as movies_router
 from src.api.routes.notifications import router as notifications_router
 from src.api.routes.orders import router as orders_router
 from src.api.routes.payments import router as payments_router
 from src.api.routes.purchases import router as purchases_router
-from src.api.routes.docs import router as docs_router
 
 api_router = APIRouter(prefix="/api/v1")
 

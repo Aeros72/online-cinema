@@ -11,9 +11,7 @@ class PaymentItemResponse(BaseModel):
     order_item_id: int
     price_at_payment: Decimal
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class PaymentResponse(BaseModel):
@@ -26,6 +24,4 @@ class PaymentResponse(BaseModel):
     external_payment_id: str | None
     items: list[PaymentItemResponse]
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}

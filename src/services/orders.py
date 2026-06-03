@@ -6,15 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.models.orders import Order, OrderStatusEnum, OrderItem
 from src.models.cart import Cart, CartItem
+from src.models.orders import Order, OrderItem, OrderStatusEnum
 from src.models.purchases import PurchasedMovie
 
 
-async def get_user_cart_with_items(
-        db: AsyncSession,
-        user_id: int
-) -> Cart | None:
+async def get_user_cart_with_items(db: AsyncSession, user_id: int) -> Cart | None:
     result = await db.execute(
         select(Cart)
         .where(Cart.user_id == user_id)
@@ -24,16 +21,12 @@ async def get_user_cart_with_items(
     return result.scalar_one_or_none()
 
 
-async def create_order_from_cart(
-        db: AsyncSession,
-        user_id: int
-) -> Order:
+async def create_order_from_cart(db: AsyncSession, user_id: int) -> Order:
     cart = await get_user_cart_with_items(db=db, user_id=user_id)
 
     if cart is None or not cart.items:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cart is empty."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Cart is empty."
         )
 
     movie_ids = [item.movie_id for item in cart.items]
@@ -73,15 +66,10 @@ async def create_order_from_cart(
                 detail="You already have a pending order with the same movies.",
             )
 
-    total_amount = sum(
-        (item.movie.price for item in cart.items),
-        Decimal("0.00")
-    )
+    total_amount = sum((item.movie.price for item in cart.items), Decimal("0.00"))
 
     order = Order(
-        user_id=user_id,
-        status=OrderStatusEnum.PENDING,
-        total_amount=total_amount
+        user_id=user_id, status=OrderStatusEnum.PENDING, total_amount=total_amount
     )
 
     db.add(order)
@@ -89,9 +77,7 @@ async def create_order_from_cart(
 
     for item in cart.items:
         order_item = OrderItem(
-            order_id=order.id,
-            movie_id=item.movie_id,
-            price_at_order=item.movie.price
+            order_id=order.id, movie_id=item.movie_id, price_at_order=item.movie.price
         )
         db.add(order_item)
 
@@ -101,19 +87,14 @@ async def create_order_from_cart(
     await db.commit()
 
     result = await db.execute(
-        select(Order)
-        .where(Order.id == order.id)
-        .options(selectinload(Order.items))
+        select(Order).where(Order.id == order.id).options(selectinload(Order.items))
     )
     created_order = result.scalar_one()
 
     return created_order
 
 
-async def get_user_orders(
-        db: AsyncSession,
-        user_id: int
-) -> list[Order]:
+async def get_user_orders(db: AsyncSession, user_id: int) -> list[Order]:
     result = await db.execute(
         select(Order)
         .where(Order.user_id == user_id)
@@ -124,34 +105,26 @@ async def get_user_orders(
     return list(result.scalars().all())
 
 
-async def cancel_order(
-        db: AsyncSession,
-        user_id: int,
-        order_id: int
-) -> Order:
+async def cancel_order(db: AsyncSession, user_id: int, order_id: int) -> Order:
     result = await db.execute(
-        select(Order)
-        .where(Order.id == order_id)
-        .options(selectinload(Order.items))
+        select(Order).where(Order.id == order_id).options(selectinload(Order.items))
     )
     order = result.scalar_one_or_none()
 
     if order is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Order not found."
         )
 
     if order.user_id != user_id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not your order."
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not your order."
         )
 
     if order.status != OrderStatusEnum.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only pending orders can be canceled."
+            detail="Only pending orders can be canceled.",
         )
 
     order.status = OrderStatusEnum.CANCELED
@@ -163,11 +136,11 @@ async def cancel_order(
 
 
 async def get_admin_orders(
-        db: AsyncSession,
-        user_id: int | None = None,
-        order_status: OrderStatusEnum | None = None,
-        date_from: datetime | None = None,
-        date_to: datetime | None = None
+    db: AsyncSession,
+    user_id: int | None = None,
+    order_status: OrderStatusEnum | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
 ) -> list[Order]:
     query = select(Order).options(selectinload(Order.items))
 

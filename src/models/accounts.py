@@ -1,10 +1,14 @@
 import enum
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, String, Boolean, DateTime, func, ForeignKey, Date, Text
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db.base import Base
+
+if TYPE_CHECKING:
+    from src.models.movies import Movie
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -23,9 +27,7 @@ class UserGroup(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[UserGroupEnum] = mapped_column(
-        Enum(UserGroupEnum),
-        unique=True,
-        nullable=False
+        Enum(UserGroupEnum), unique=True, nullable=False
     )
 
     users: Mapped[list["User"]] = relationship(back_populates="group")
@@ -36,50 +38,30 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(
-        String(255),
-        unique=True,
-        nullable=False,
-        index=True
+        String(255), unique=True, nullable=False, index=True
     )
-    hashed_password: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
-    )
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False
-    )
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
-        nullable=False
+        nullable=False,
     )
-    group_id: Mapped[int] = mapped_column(
-        ForeignKey("user_groups.id"),
-        nullable=False
-    )
+    group_id: Mapped[int] = mapped_column(ForeignKey("user_groups.id"), nullable=False)
 
     group: Mapped["UserGroup"] = relationship(back_populates="users")
     profile: Mapped["UserProfile"] = relationship(
-        back_populates="user",
-        uselist=False,
-        cascade="all, delete-orphan"
+        back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
-        back_populates="user",
-        cascade="all, delete-orphan"
+        back_populates="user", cascade="all, delete-orphan"
     )
     activation_token: Mapped["ActivationToken"] = relationship(
-        back_populates="user",
-        uselist=False,
-        cascade="all, delete-orphan"
+        back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
     password_reset_token: Mapped["PasswordResetToken"] = relationship(
         back_populates="user",
@@ -87,8 +69,7 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     favorite_movies: Mapped[list["Movie"]] = relationship(
-        secondary="favorite_movies",
-        back_populates="favorited_by"
+        secondary="favorite_movies", back_populates="favorited_by"
     )
 
 
@@ -97,34 +78,14 @@ class UserProfile(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        unique=True,
-        nullable=False
+        ForeignKey("users.id"), unique=True, nullable=False
     )
-    first_name: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True
-    )
-    last_name: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True
-    )
-    avatar: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True
-    )
-    gender: Mapped[GenderEnum | None] = mapped_column(
-        Enum(GenderEnum),
-        nullable=True
-    )
-    date_of_birth: Mapped[date | None] = mapped_column(
-        Date,
-        nullable=True
-    )
-    info: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True
-    )
+    first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    avatar: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    gender: Mapped[GenderEnum | None] = mapped_column(Enum(GenderEnum), nullable=True)
+    date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
+    info: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="profile")
 
@@ -133,19 +94,12 @@ class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        nullable=False
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     token: Mapped[str] = mapped_column(
-        String(512),
-        unique=True,
-        nullable=False,
-        index=True
+        String(512), unique=True, nullable=False, index=True
     )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False
+        DateTime(timezone=True), nullable=False
     )
 
     user: Mapped["User"] = relationship(back_populates="refresh_tokens")
@@ -156,24 +110,16 @@ class ActivationToken(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        unique=True,
-        nullable=False
+        ForeignKey("users.id"), unique=True, nullable=False
     )
     token: Mapped[str] = mapped_column(
-        String(512),
-        unique=True,
-        nullable=False,
-        index=True
+        String(512), unique=True, nullable=False, index=True
     )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False
+        DateTime(timezone=True), nullable=False
     )
 
-    user: Mapped["User"] = relationship(
-        back_populates="activation_token"
-    )
+    user: Mapped["User"] = relationship(back_populates="activation_token")
 
 
 class PasswordResetToken(Base):
@@ -181,21 +127,13 @@ class PasswordResetToken(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        unique=True,
-        nullable=False
+        ForeignKey("users.id"), unique=True, nullable=False
     )
     token: Mapped[str] = mapped_column(
-        String(512),
-        unique=True,
-        nullable=False,
-        index=True
+        String(512), unique=True, nullable=False, index=True
     )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False
+        DateTime(timezone=True), nullable=False
     )
 
-    user: Mapped["User"] = relationship(
-        back_populates="password_reset_token"
-    )
+    user: Mapped["User"] = relationship(back_populates="password_reset_token")
