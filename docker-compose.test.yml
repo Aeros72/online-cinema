@@ -1,0 +1,16 @@
+services:
+  test_db:
+    image: postgres:18
+    container_name: online_cinema_test_db
+    restart: always
+    environment:
+      POSTGRES_DB: online_cinema_test
+      POSTGRES_USER: cinema_test_user
+      POSTGRES_PASSWORD: cinema_test_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql
+
+volumes:
+  postgres_test_data:
